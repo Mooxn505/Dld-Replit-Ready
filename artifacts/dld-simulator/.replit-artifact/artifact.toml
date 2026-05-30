@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "DLD Cell Sorting Simulator"
+version = "1.0.0"
+id = "artifacts/dld-simulator"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18600
+
+[services.development]
+run = "pnpm --filter @workspace/dld-simulator run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/dld-simulator", "run", "build" ]
+publicDir = "artifacts/dld-simulator/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18600"
+BASE_PATH = "/"

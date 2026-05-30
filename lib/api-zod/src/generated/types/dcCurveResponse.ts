@@ -5,7 +5,9 @@
  * DLD Cell Sorting Simulator API
  * OpenAPI spec version: 0.1.0
  */
+import type { DcCurveSeries } from './dcCurveSeries';
 
-export interface HealthStatus {
-  status: string;
+export interface DcCurveResponse {
+  G_vals: number[];
+  curves: DcCurveSeries[];
 }

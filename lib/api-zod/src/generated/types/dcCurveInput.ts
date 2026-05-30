@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface DcCurveInput {
+  /** List of N values to plot curves for */
+  N_values: number[];
 }

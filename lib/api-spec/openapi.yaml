@@ -3,13 +3,15 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: DLD Cell Sorting Simulator API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: dld
+    description: Deterministic Lateral Displacement simulation
 paths:
   /healthz:
     get:
@@ -24,13 +26,290 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /dld/cells:
+    get:
+      operationId: getCells
+      tags: [dld]
+      summary: Get cell library
+      description: Returns the predefined cell type library with typical diameters
+      responses:
+        "200":
+          description: Cell library
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CellEntry"
+
+  /dld/analyze:
+    post:
+      operationId: analyzeParticles
+      tags: [dld]
+      summary: Analyze two-particle separation
+      description: Computes sorting efficiency and simulates trajectories for two particle types
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DldAnalyzeInput"
+      responses:
+        "200":
+          description: Analysis result with trajectories
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyzeResponse"
+        "400":
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /dld/sweep:
+    post:
+      operationId: sweepGeometry
+      tags: [dld]
+      summary: Geometry parameter sweep
+      description: Sweeps pillar gap G and array period N to find optimal sorting geometry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DldSweepInput"
+      responses:
+        "200":
+          description: Sweep heatmap data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SweepResponse"
+        "400":
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /dld/dc-curve:
+    post:
+      operationId: getDcCurve
+      tags: [dld]
+      summary: Critical diameter vs pillar gap curves
+      description: Returns Dc vs G data for multiple N values (Davis formula)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DcCurveInput"
+      responses:
+        "200":
+          description: Dc curve data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DcCurveResponse"
+        "400":
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    CellEntry:
+      type: object
+      required: [name, diameter]
+      properties:
+        name:
+          type: string
+        diameter:
+          type: number
+
+    DldAnalyzeInput:
+      type: object
+      required: [d1, d2, G, N]
+      properties:
+        d1:
+          type: number
+          description: Diameter of particle 1 (µm)
+        d2:
+          type: number
+          description: Diameter of particle 2 (µm)
+        G:
+          type: number
+          description: Pillar gap (µm)
+        N:
+          type: integer
+          description: Array period (number of rows per repeat)
+        label1:
+          type: string
+          description: Label for particle 1
+        label2:
+          type: string
+          description: Label for particle 2
+
+    DldSweepInput:
+      type: object
+      required: [d1, d2]
+      properties:
+        d1:
+          type: number
+          description: Diameter of particle 1 (µm)
+        d2:
+          type: number
+          description: Diameter of particle 2 (µm)
+
+    DcCurveInput:
+      type: object
+      required: [N_values]
+      properties:
+        N_values:
+          type: array
+          items:
+            type: integer
+          description: List of N values to plot curves for
+
+    SortingResult:
+      type: object
+      required: [Dc, mode_p1, mode_p2, separated, delta_ld, efficiency, lateral_d1, lateral_d2]
+      properties:
+        Dc:
+          type: number
+          description: Critical diameter (µm)
+        mode_p1:
+          type: string
+          description: bump or zigzag
+        mode_p2:
+          type: string
+          description: bump or zigzag
+        separated:
+          type: boolean
+          description: Whether particles are separated
+        delta_ld:
+          type: number
+          description: Lateral displacement difference (µm/row)
+        efficiency:
+          type: number
+          description: Sorting efficiency score 0-100
+        lateral_d1:
+          type: number
+        lateral_d2:
+          type: number
+
+    TrajectoryPoint:
+      type: object
+      required: [x, y]
+      properties:
+        x:
+          type: number
+        y:
+          type: number
+
+    PillarCircle:
+      type: object
+      required: [cx, cy, r]
+      properties:
+        cx:
+          type: number
+        cy:
+          type: number
+        r:
+          type: number
+
+    AnalyzeResponse:
+      type: object
+      required: [result, trajectory1, trajectory2, pillars]
+      properties:
+        result:
+          $ref: "#/components/schemas/SortingResult"
+        trajectory1:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrajectoryPoint"
+        trajectory2:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrajectoryPoint"
+        pillars:
+          type: array
+          items:
+            $ref: "#/components/schemas/PillarCircle"
+
+    SweepBest:
+      type: object
+      required: [G, N, efficiency, Dc]
+      properties:
+        G:
+          type: number
+        N:
+          type: integer
+        efficiency:
+          type: number
+        Dc:
+          type: number
+
+    SweepResponse:
+      type: object
+      required: [G_vals, N_vals, eff_matrix, best]
+      properties:
+        G_vals:
+          type: array
+          items:
+            type: number
+        N_vals:
+          type: array
+          items:
+            type: integer
+        eff_matrix:
+          type: array
+          items:
+            type: array
+            items:
+              type: number
+        best:
+          $ref: "#/components/schemas/SweepBest"
+
+    DcCurveSeries:
+      type: object
+      required: [N, Dc_vals]
+      properties:
+        N:
+          type: integer
+        Dc_vals:
+          type: array
+          items:
+            type: number
+
+    DcCurveResponse:
+      type: object
+      required: [G_vals, curves]
+      properties:
+        G_vals:
+          type: array
+          items:
+            type: number
+        curves:
+          type: array
+          items:
+            $ref: "#/components/schemas/DcCurveSeries"
