@@ -1,0 +1,140 @@
+/**
+ * flow.ts
+ * -------
+ * Step 3 of the DLD project plan: flow rate analysis.
+ *
+ * Models how sorting efficiency degrades as flow velocity increases.
+ *
+ * Key physics:
+ *   - DLD requires Stokes flow (Re << 1). Above Re ≈ 0.1 inertial effects
+ *     cause particles to overshoot pillar gaps and stop sorting correctly.
+ *   - Reynolds number: Re = ρ·v·G / µ
+ *       ρ_water = 1000 kg/m³, µ_water = 0.001 Pa·s
+ *       → Re = v_mm_s × G_µm × 1e-6  (practical units)
+ *   - Efficiency degradation factor:
+ *       f(Re) = 1 / (1 + (Re / Re_crit)^1.5)
+ *       Re_crit = 0.1 — efficiency halved at this point
+ *   - Volumetric flow rate: Q = v × w × h (converted to µL/min)
+ *
+ * The "optimal operating window" is where:
+ *   1. Re < Re_crit (still in Stokes regime)
+ *   2. Efficiency after degradation ≥ 50 % of ideal
+ */
+
+import { sortingEfficiency } from "./dld";
+
+export const RE_CRIT = 0.1; // efficiency halved at this Re
+const RHO = 1000; // kg/m³ (water)
+const MU = 0.001; // Pa·s (water at 20 °C)
+
+export interface FlowPoint {
+  v_mm_s: number;
+  Re: number;
+  flow_rate_ul_min: number;
+  efficiency: number;
+  regime: "deep-stokes" | "stokes" | "transition" | "inertial";
+}
+
+export interface FlowAnalysis {
+  points: FlowPoint[];
+  ideal_efficiency: number;
+  Dc: number;
+  optimal_v_min_mm_s: number;
+  optimal_v_max_mm_s: number;
+  optimal_q_min_ul_min: number;
+  optimal_q_max_ul_min: number;
+  re_crit: number;
+  channel_height_um: number;
+  channel_width_um: number;
+}
+
+function reynoldsNumber(v_mm_s: number, G_um: number): number {
+  // Re = ρ × v × G / µ (SI units)
+  const v_m_s = v_mm_s * 1e-3;
+  const G_m = G_um * 1e-6;
+  return (RHO * v_m_s * G_m) / MU;
+}
+
+function efficiencyFactor(Re: number): number {
+  // Soft degradation: f = 1 / (1 + (Re/Re_crit)^1.5)
+  // At Re = Re_crit: f = 0.5
+  return 1 / (1 + Math.pow(Re / RE_CRIT, 1.5));
+}
+
+function flowRegime(Re: number): FlowPoint["regime"] {
+  if (Re < 0.01) return "deep-stokes";
+  if (Re < 0.1) return "stokes";
+  if (Re < 1) return "transition";
+  return "inertial";
+}
+
+function volumetricFlowRate(v_mm_s: number, width_um: number, height_um: number): number {
+  // Q = v × cross-section area, converted to µL/min
+  // v in mm/s, width/height in µm → mm
+  const w_mm = width_um / 1000;
+  const h_mm = height_um / 1000;
+  // Q [mm³/s] × 60 [s/min] / 1000 [mm³/µL]
+  return v_mm_s * w_mm * h_mm * 60 / 1000;
+}
+
+export function analyzeFlowRate(
+  d1: number,
+  d2: number,
+  G: number,
+  N: number,
+  channelHeightUm = 50,
+  channelWidthUm = 500,
+  vMaxMmS = 20,
+  nPoints = 60,
+): FlowAnalysis {
+  const geo = sortingEfficiency(d1, d2, G, N);
+  const idealEff = geo.efficiency;
+  const Dc = geo.Dc;
+
+  // Log-spaced velocity sweep from 0.002 mm/s to vMaxMmS
+  const vMin = 0.002;
+  const logMin = Math.log10(vMin);
+  const logMax = Math.log10(vMaxMmS);
+
+  const points: FlowPoint[] = [];
+
+  for (let i = 0; i < nPoints; i++) {
+    const logV = logMin + (i / (nPoints - 1)) * (logMax - logMin);
+    const v = Math.pow(10, logV);
+    const Re = reynoldsNumber(v, G);
+    const factor = efficiencyFactor(Re);
+    const eff = Math.round(idealEff * factor * 10) / 10;
+    const Q = volumetricFlowRate(v, channelWidthUm, channelHeightUm);
+
+    points.push({
+      v_mm_s: Math.round(v * 10000) / 10000,
+      Re: Math.round(Re * 100000) / 100000,
+      flow_rate_ul_min: Math.round(Q * 10000) / 10000,
+      efficiency: eff,
+      regime: flowRegime(Re),
+    });
+  }
+
+  // Optimal window: efficiency ≥ 50 % of ideal AND Re < Re_crit
+  const optimalPoints = points.filter(
+    (p) => p.efficiency >= idealEff * 0.5 && p.Re < RE_CRIT,
+  );
+
+  const optVMin = optimalPoints.length > 0 ? optimalPoints[0].v_mm_s : 0;
+  const optVMax = optimalPoints.length > 0 ? optimalPoints[optimalPoints.length - 1].v_mm_s : 0;
+  const optQMin = optimalPoints.length > 0 ? optimalPoints[0].flow_rate_ul_min : 0;
+  const optQMax = optimalPoints.length > 0 ? optimalPoints[optimalPoints.length - 1].flow_rate_ul_min : 0;
+
+  return {
+    points,
+    ideal_efficiency: idealEff,
+    Dc,
+    optimal_v_min_mm_s: Math.round(optVMin * 1000) / 1000,
+    optimal_v_max_mm_s: Math.round(optVMax * 1000) / 1000,
+    optimal_q_min_ul_min: Math.round(optQMin * 1000) / 1000,
+    optimal_q_max_ul_min: Math.round(optQMax * 1000) / 1000,
+    re_crit: RE_CRIT,
+    channel_height_um: channelHeightUm,
+    channel_width_um: channelWidthUm,
+  };
+}

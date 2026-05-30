@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useGetCells, useAnalyzeParticles, useSweepGeometry, useGetDcCurve } from "@workspace/api-client-react";
+import { useGetCells, useAnalyzeParticles, useSweepGeometry, useGetDcCurve, useAnalyzeFlowRate } from "@workspace/api-client-react";
 import { ControlPanel } from "@/components/control-panel";
 import { TrajectoryVisualizer } from "@/components/trajectory-visualizer";
 import { ChartsPanel } from "@/components/charts-panel";
@@ -7,7 +7,8 @@ import { motion } from "framer-motion";
 import { 
   type AnalyzeResponse, 
   type SweepResponse, 
-  type DcCurveResponse 
+  type DcCurveResponse,
+  type FlowAnalysisResponse,
 } from "@workspace/api-client-react/src/generated/api.schemas";
 
 export default function Home() {
@@ -21,10 +22,12 @@ export default function Home() {
   const [analyzeData, setAnalyzeData] = useState<AnalyzeResponse | null>(null);
   const [sweepData, setSweepData] = useState<SweepResponse | null>(null);
   const [dcCurveData, setDcCurveData] = useState<DcCurveResponse | null>(null);
+  const [flowData, setFlowData] = useState<FlowAnalysisResponse | null>(null);
 
   const analyzeParticles = useAnalyzeParticles();
   const sweepGeometry = useSweepGeometry();
   const getDcCurve = useGetDcCurve();
+  const analyzeFlow = useAnalyzeFlowRate();
   const { data: cells } = useGetCells();
 
   // Initial analysis on mount
@@ -53,6 +56,13 @@ export default function Home() {
     );
   };
 
+  const runFlowAnalysis = () => {
+    analyzeFlow.mutate(
+      { data: { d1, d2, G, N } },
+      { onSuccess: (data) => setFlowData(data) }
+    );
+  };
+
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden text-foreground selection:bg-primary/30">
       <ControlPanel
@@ -72,7 +82,8 @@ export default function Home() {
         onAnalyze={() => runAnalysis()}
         onSweep={runSweep}
         onDcCurves={runDcCurves}
-        isLoading={analyzeParticles.isPending || sweepGeometry.isPending || getDcCurve.isPending}
+        onFlowAnalysis={runFlowAnalysis}
+        isLoading={analyzeParticles.isPending || sweepGeometry.isPending || getDcCurve.isPending || analyzeFlow.isPending}
       />
       
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative border-l border-border/50">
@@ -103,7 +114,7 @@ export default function Home() {
             transition={{ duration: 0.4, delay: 0.1 }}
             className="flex-1 min-h-[400px]"
           >
-            <ChartsPanel sweepData={sweepData} dcCurveData={dcCurveData} />
+            <ChartsPanel sweepData={sweepData} dcCurveData={dcCurveData} flowData={flowData} />
           </motion.div>
         </div>
       </main>

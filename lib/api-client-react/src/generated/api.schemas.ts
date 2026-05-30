@@ -94,6 +94,52 @@ export interface SweepResponse {
   best: SweepBest;
 }
 
+export interface DldFlowInput {
+  /** Diameter of particle 1 (µm) */
+  d1: number;
+  /** Diameter of particle 2 (µm) */
+  d2: number;
+  /** Pillar gap (µm) */
+  G: number;
+  /** Array period */
+  N: number;
+  /** Channel height in µm (default 50) */
+  channel_height_um?: number;
+  /** Channel width in µm (default 500) */
+  channel_width_um?: number;
+  /** Maximum velocity to sweep in mm/s (default 20) */
+  v_max_mm_s?: number;
+}
+
+export interface FlowPoint {
+  /** Flow velocity (mm/s) */
+  v_mm_s: number;
+  /** Reynolds number */
+  Re: number;
+  /** Volumetric flow rate (µL/min) */
+  flow_rate_ul_min: number;
+  /** Actual sorting efficiency 0–100 after Re degradation */
+  efficiency: number;
+  /** deep-stokes | stokes | transition | inertial */
+  regime: string;
+}
+
+export interface FlowAnalysisResponse {
+  points: FlowPoint[];
+  /** Geometry-only efficiency before flow degradation */
+  ideal_efficiency: number;
+  /** Critical diameter (µm) */
+  Dc: number;
+  optimal_v_min_mm_s: number;
+  optimal_v_max_mm_s: number;
+  optimal_q_min_ul_min: number;
+  optimal_q_max_ul_min: number;
+  /** Reynolds number where efficiency drops to 50% */
+  re_crit: number;
+  channel_height_um: number;
+  channel_width_um: number;
+}
+
 export interface DldPreset {
   id: string;
   name: string;

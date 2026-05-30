@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Play, Grid3X3, LineChart, Cpu } from "lucide-react";
+import { Play, Grid3X3, LineChart, Cpu, Waves } from "lucide-react";
 import type { CellEntry } from "@workspace/api-client-react/src/generated/api.schemas";
 import { MoldExportPanel } from "./mold-export-panel";
 
@@ -26,6 +26,7 @@ interface ControlPanelProps {
   onAnalyze: () => void;
   onSweep: () => void;
   onDcCurves: () => void;
+  onFlowAnalysis: () => void;
   isLoading: boolean;
 }
 
@@ -46,6 +47,7 @@ export function ControlPanel({
   onAnalyze,
   onSweep,
   onDcCurves,
+  onFlowAnalysis,
   isLoading
 }: ControlPanelProps) {
   
@@ -253,6 +255,15 @@ export function ControlPanel({
           >
             <LineChart className="w-3 h-3 mr-1.5 text-primary" />
             Dc Curves
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={onFlowAnalysis} 
+            disabled={isLoading}
+            className="col-span-2 font-mono text-[10px] uppercase tracking-wider h-8 border-border/50 bg-background hover:bg-muted"
+          >
+            <Waves className="w-3 h-3 mr-1.5 text-[#1D9E75]" />
+            Flow Analysis
           </Button>
         </div>
       </div>

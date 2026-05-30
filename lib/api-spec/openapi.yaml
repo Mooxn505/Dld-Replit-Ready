@@ -95,6 +95,35 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /dld/flow-analysis:
+    post:
+      operationId: analyzeFlowRate
+      tags: [dld]
+      summary: Flow rate analysis
+      description: >
+        Sweeps flow velocity and computes sorting efficiency at each velocity,
+        accounting for Reynolds-number-based degradation. Returns the optimal
+        operating window for your geometry.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DldFlowInput"
+      responses:
+        "200":
+          description: Flow analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlowAnalysisResponse"
+        "400":
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /dld/presets:
     get:
       operationId: getDldPresets
@@ -331,6 +360,82 @@ components:
               type: number
         best:
           $ref: "#/components/schemas/SweepBest"
+
+    DldFlowInput:
+      type: object
+      required: [d1, d2, G, N]
+      properties:
+        d1:
+          type: number
+          description: Diameter of particle 1 (µm)
+        d2:
+          type: number
+          description: Diameter of particle 2 (µm)
+        G:
+          type: number
+          description: Pillar gap (µm)
+        N:
+          type: integer
+          description: Array period
+        channel_height_um:
+          type: number
+          description: Channel height in µm (default 50)
+        channel_width_um:
+          type: number
+          description: Channel width in µm (default 500)
+        v_max_mm_s:
+          type: number
+          description: Maximum velocity to sweep in mm/s (default 20)
+
+    FlowPoint:
+      type: object
+      required: [v_mm_s, Re, flow_rate_ul_min, efficiency, regime]
+      properties:
+        v_mm_s:
+          type: number
+          description: Flow velocity (mm/s)
+        Re:
+          type: number
+          description: Reynolds number
+        flow_rate_ul_min:
+          type: number
+          description: Volumetric flow rate (µL/min)
+        efficiency:
+          type: number
+          description: Actual sorting efficiency 0–100 after Re degradation
+        regime:
+          type: string
+          description: "deep-stokes | stokes | transition | inertial"
+
+    FlowAnalysisResponse:
+      type: object
+      required: [points, ideal_efficiency, Dc, optimal_v_min_mm_s, optimal_v_max_mm_s, optimal_q_min_ul_min, optimal_q_max_ul_min, re_crit, channel_height_um, channel_width_um]
+      properties:
+        points:
+          type: array
+          items:
+            $ref: "#/components/schemas/FlowPoint"
+        ideal_efficiency:
+          type: number
+          description: Geometry-only efficiency before flow degradation
+        Dc:
+          type: number
+          description: Critical diameter (µm)
+        optimal_v_min_mm_s:
+          type: number
+        optimal_v_max_mm_s:
+          type: number
+        optimal_q_min_ul_min:
+          type: number
+        optimal_q_max_ul_min:
+          type: number
+        re_crit:
+          type: number
+          description: Reynolds number where efficiency drops to 50%
+        channel_height_um:
+          type: number
+        channel_width_um:
+          type: number
 
     DldPreset:
       type: object

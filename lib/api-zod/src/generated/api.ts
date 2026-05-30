@@ -91,6 +91,41 @@ export const SweepGeometryResponse = zod.object({
 
 
 /**
+ * Sweeps flow velocity and computes sorting efficiency at each velocity, accounting for Reynolds-number-based degradation. Returns the optimal operating window for your geometry.
+
+ * @summary Flow rate analysis
+ */
+export const AnalyzeFlowRateBody = zod.object({
+  "d1": zod.number().describe('Diameter of particle 1 (µm)'),
+  "d2": zod.number().describe('Diameter of particle 2 (µm)'),
+  "G": zod.number().describe('Pillar gap (µm)'),
+  "N": zod.number().describe('Array period'),
+  "channel_height_um": zod.number().optional().describe('Channel height in µm (default 50)'),
+  "channel_width_um": zod.number().optional().describe('Channel width in µm (default 500)'),
+  "v_max_mm_s": zod.number().optional().describe('Maximum velocity to sweep in mm\/s (default 20)')
+})
+
+export const AnalyzeFlowRateResponse = zod.object({
+  "points": zod.array(zod.object({
+  "v_mm_s": zod.number().describe('Flow velocity (mm\/s)'),
+  "Re": zod.number().describe('Reynolds number'),
+  "flow_rate_ul_min": zod.number().describe('Volumetric flow rate (µL\/min)'),
+  "efficiency": zod.number().describe('Actual sorting efficiency 0–100 after Re degradation'),
+  "regime": zod.string().describe('deep-stokes | stokes | transition | inertial')
+})),
+  "ideal_efficiency": zod.number().describe('Geometry-only efficiency before flow degradation'),
+  "Dc": zod.number().describe('Critical diameter (µm)'),
+  "optimal_v_min_mm_s": zod.number(),
+  "optimal_v_max_mm_s": zod.number(),
+  "optimal_q_min_ul_min": zod.number(),
+  "optimal_q_max_ul_min": zod.number(),
+  "re_crit": zod.number().describe('Reynolds number where efficiency drops to 50%'),
+  "channel_height_um": zod.number(),
+  "channel_width_um": zod.number()
+})
+
+
+/**
  * Returns 3 validated DLD chip geometries optimised for different sorting tasks
  * @summary Get preset chip geometries
  */

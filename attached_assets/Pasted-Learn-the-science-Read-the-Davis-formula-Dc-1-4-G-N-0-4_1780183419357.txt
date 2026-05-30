@@ -1,0 +1,37 @@
+Learn the science: 
+
+Read the Davis formula: Dc = 1.4 × G × N^(−0.48) — this is the equation that determines which particles get sorted. G = gap between pillars, N = array period. This is your core physics.
+Understand two modes: zigzag mode (small particles follow flow) vs bump mode (large particles deflect laterally). Your simulation models both.
+Research context: DLD is used RIGHT NOW to isolate circulating tumor cells from blood for cancer early detection. That's your "why it matters" story for judges.
+Watch: search YouTube for "deterministic lateral displacement microfluidics" — there are great visualizations of real chips working.
+
+Python simulation: 
+
+Step 1 — particle trajectory sim: Use NumPy to model particles of different diameters moving through a pillar array. Apply the Davis formula to calculate critical diameter. Plot which particles zigzag vs bump using matplotlib.
+Step 2 — geometry sweep: Your original research question — vary pillar gap (G) and array period (N) across 10–20 configurations and compute sorting efficiency for each. Which geometry best separates "cell A" (8µm) from "cell B" (12µm)?
+Step 3 — flow rate analysis: Model how changing flow velocity affects sorting. Too fast = particles don't sort correctly. Find the optimal flow rate range for your best geometry.
+Step 4 — web dashboard: Build a Flask + HTML/CSS/JS frontend where you input pillar gap, period, and particle size and it shows predicted trajectory in real time. Original software contribution — no one else will have this.
+
+Libraries: NumPy, matplotlib, Flask, maybe SciPy for fluid equations. All free, all in Python which you already know.
+
+CAD: 
+
+Design 2–3 pillar array geometries in SolidWorks — cylindrical pillars are easiest to start. Design the mold as a raised positive (pillars stick up) so elastomer casts around them.
+Scale up by 10–20x from real chip dimensions (real chips have 10–50µm features; your printer does ~200µm minimum). That's fine — you're demonstrating the geometry and principle, not building a clinical device.
+Add inlet and outlet ports (3–4mm diameter cylinders) for tubing connections. Add a flat base at least 3mm thick so the mold doesn't warp during printing.
+Print at 0.1mm layer height for smoothest pillar walls. 
+
+Physical prototype: 
+
+
+Cast SYLCAP elastomer into your 3D printed mold. Cure in oven. Peel, punch ports, bond to microscope slide.
+Connect silicone tubing to ports. Use your syringes to manually flow two differently-colored food dye solutions — one "small particle" stream, one "large particle" stream.
+Image with your LCD microscope. Does the flow split as your simulation predicted? Even partial agreement is a valid scientific result worth reporting.
+Later: connect your Arduino stepper motors to control flow rate precisely and match the flow rates you simulated in Python.
+
+Final:
+
+Research question: "Which DLD pillar array geometry achieves the highest size-based particle separation efficiency at low flow rates, and can a sub-$300 fabrication pipeline validate computational predictions?"
+Link it in your BioGENEius application. Judges notice this — it shows real engineering practice.
+Record a 60-second demo video: show your web dashboard predicting a trajectory, then cut to your microscope showing fluid flowing through the physical chip. That's your hook.
+Impact statement for judges: Commercial DLD chips cost $500–5,000+. Pipeline costs under $300 and is fully open source. That's the accessibility story that wins BioGENEius Healthcare track.

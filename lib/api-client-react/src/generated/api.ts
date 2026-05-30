@@ -25,11 +25,13 @@ import type {
   DcCurveInput,
   DcCurveResponse,
   DldAnalyzeInput,
+  DldFlowInput,
   DldPreset,
   DldSweepInput,
   DxfExportInput,
   DxfExportResponse,
   ErrorResponse,
+  FlowAnalysisResponse,
   HealthStatus,
   SweepResponse
 } from './api.schemas';
@@ -344,6 +346,79 @@ export const useSweepGeometry = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getSweepGeometryMutationOptions(options));
+    }
+
+export const getAnalyzeFlowRateUrl = () => {
+
+
+
+
+  return `/api/dld/flow-analysis`
+}
+
+/**
+ * Sweeps flow velocity and computes sorting efficiency at each velocity, accounting for Reynolds-number-based degradation. Returns the optimal operating window for your geometry.
+
+ * @summary Flow rate analysis
+ */
+export const analyzeFlowRate = async (dldFlowInput: DldFlowInput, options?: RequestInit): Promise<FlowAnalysisResponse> => {
+
+  return customFetch<FlowAnalysisResponse>(getAnalyzeFlowRateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      dldFlowInput,)
+  }
+);}
+
+
+
+
+export const getAnalyzeFlowRateMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeFlowRate>>, TError,{data: BodyType<DldFlowInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof analyzeFlowRate>>, TError,{data: BodyType<DldFlowInput>}, TContext> => {
+
+const mutationKey = ['analyzeFlowRate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof analyzeFlowRate>>, {data: BodyType<DldFlowInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  analyzeFlowRate(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AnalyzeFlowRateMutationResult = NonNullable<Awaited<ReturnType<typeof analyzeFlowRate>>>
+    export type AnalyzeFlowRateMutationBody = BodyType<DldFlowInput>
+    export type AnalyzeFlowRateMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Flow rate analysis
+ */
+export const useAnalyzeFlowRate = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeFlowRate>>, TError,{data: BodyType<DldFlowInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof analyzeFlowRate>>,
+        TError,
+        {data: BodyType<DldFlowInput>},
+        TContext
+      > => {
+      return useMutation(getAnalyzeFlowRateMutationOptions(options));
     }
 
 export const getGetDldPresetsUrl = () => {
