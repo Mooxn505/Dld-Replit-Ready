@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Play, Grid3X3, LineChart, Cpu } from "lucide-react";
 import type { CellEntry } from "@workspace/api-client-react/src/generated/api.schemas";
+import { MoldExportPanel } from "./mold-export-panel";
 
 interface ControlPanelProps {
   cells?: CellEntry[];
@@ -216,6 +217,13 @@ export function ControlPanel({
           </div>
         </section>
       </div>
+
+      <MoldExportPanel
+        currentG={G}
+        currentN={N}
+        currentLabel1={label1}
+        currentLabel2={label2}
+      />
 
       <div className="p-4 border-t border-border/50 bg-background/30 space-y-2">
         <Button 

@@ -91,6 +91,49 @@ export const SweepGeometryResponse = zod.object({
 
 
 /**
+ * Returns 3 validated DLD chip geometries optimised for different sorting tasks
+ * @summary Get preset chip geometries
+ */
+export const GetDldPresetsResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "d1": zod.number(),
+  "d2": zod.number(),
+  "label1": zod.string(),
+  "label2": zod.string(),
+  "G": zod.number(),
+  "N": zod.number(),
+  "Dc": zod.number(),
+  "task": zod.string()
+})
+export const GetDldPresetsResponse = zod.array(GetDldPresetsResponseItem)
+
+
+/**
+ * Generates a SolidWorks-compatible R12 ASCII DXF of the scaled-up pillar array mold
+ * @summary Export mold DXF
+ */
+export const ExportDxfBody = zod.object({
+  "G": zod.number().describe('Pillar gap in µm'),
+  "N": zod.number().describe('Array period'),
+  "scale": zod.number().describe('Scale multiplier (e.g. 50 means 50x scale-up for printing)'),
+  "label": zod.string().optional().describe('Chip label for DXF annotation'),
+  "n_rows": zod.number().optional().describe('Number of pillar rows (default 20)'),
+  "n_cols": zod.number().optional().describe('Number of pillar columns (default 8)')
+})
+
+export const ExportDxfResponse = zod.object({
+  "filename": zod.string(),
+  "dxf_content": zod.string(),
+  "chip_width_mm": zod.number(),
+  "chip_height_mm": zod.number(),
+  "pillar_diameter_mm": zod.number(),
+  "scale": zod.number()
+})
+
+
+/**
  * Returns Dc vs G data for multiple N values (Davis formula)
  * @summary Critical diameter vs pillar gap curves
  */

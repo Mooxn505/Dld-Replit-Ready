@@ -95,6 +95,48 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /dld/presets:
+    get:
+      operationId: getDldPresets
+      tags: [dld]
+      summary: Get preset chip geometries
+      description: Returns 3 validated DLD chip geometries optimised for different sorting tasks
+      responses:
+        "200":
+          description: Preset geometries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DldPreset"
+
+  /dld/export-dxf:
+    post:
+      operationId: exportDxf
+      tags: [dld]
+      summary: Export mold DXF
+      description: Generates a SolidWorks-compatible R12 ASCII DXF of the scaled-up pillar array mold
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DxfExportInput"
+      responses:
+        "200":
+          description: DXF file content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DxfExportResponse"
+        "400":
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /dld/dc-curve:
     post:
       operationId: getDcCurve
@@ -289,6 +331,73 @@ components:
               type: number
         best:
           $ref: "#/components/schemas/SweepBest"
+
+    DldPreset:
+      type: object
+      required: [id, name, description, d1, d2, label1, label2, G, N, Dc, task]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        d1:
+          type: number
+        d2:
+          type: number
+        label1:
+          type: string
+        label2:
+          type: string
+        G:
+          type: number
+        N:
+          type: integer
+        Dc:
+          type: number
+        task:
+          type: string
+
+    DxfExportInput:
+      type: object
+      required: [G, N, scale]
+      properties:
+        G:
+          type: number
+          description: Pillar gap in µm
+        N:
+          type: integer
+          description: Array period
+        scale:
+          type: number
+          description: Scale multiplier (e.g. 50 means 50x scale-up for printing)
+        label:
+          type: string
+          description: Chip label for DXF annotation
+        n_rows:
+          type: integer
+          description: Number of pillar rows (default 20)
+        n_cols:
+          type: integer
+          description: Number of pillar columns (default 8)
+
+    DxfExportResponse:
+      type: object
+      required: [filename, dxf_content, chip_width_mm, chip_height_mm, pillar_diameter_mm, scale]
+      properties:
+        filename:
+          type: string
+        dxf_content:
+          type: string
+        chip_width_mm:
+          type: number
+        chip_height_mm:
+          type: number
+        pillar_diameter_mm:
+          type: number
+        scale:
+          type: number
 
     DcCurveSeries:
       type: object

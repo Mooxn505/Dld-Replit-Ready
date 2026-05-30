@@ -94,6 +94,44 @@ export interface SweepResponse {
   best: SweepBest;
 }
 
+export interface DldPreset {
+  id: string;
+  name: string;
+  description: string;
+  d1: number;
+  d2: number;
+  label1: string;
+  label2: string;
+  G: number;
+  N: number;
+  Dc: number;
+  task: string;
+}
+
+export interface DxfExportInput {
+  /** Pillar gap in µm */
+  G: number;
+  /** Array period */
+  N: number;
+  /** Scale multiplier (e.g. 50 means 50x scale-up for printing) */
+  scale: number;
+  /** Chip label for DXF annotation */
+  label?: string;
+  /** Number of pillar rows (default 20) */
+  n_rows?: number;
+  /** Number of pillar columns (default 8) */
+  n_cols?: number;
+}
+
+export interface DxfExportResponse {
+  filename: string;
+  dxf_content: string;
+  chip_width_mm: number;
+  chip_height_mm: number;
+  pillar_diameter_mm: number;
+  scale: number;
+}
+
 export interface DcCurveSeries {
   N: number;
   Dc_vals: number[];
