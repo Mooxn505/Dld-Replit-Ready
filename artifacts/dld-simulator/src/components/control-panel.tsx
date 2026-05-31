@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Play, Grid3X3, LineChart, Waves, Cpu } from "lucide-react";
+import { Play, Grid3X3, LineChart, Waves, Cpu, BookmarkPlus, BookmarkX } from "lucide-react";
 import type { CellEntry, AnalyzeResponse, FlowAnalysisResponse, ThroughputResponse } from "@workspace/api-client-react/src/generated/api.schemas";
 import { MoldExportPanel } from "./mold-export-panel";
 import { ThroughputPanel } from "./throughput-panel";
@@ -30,6 +30,10 @@ interface ControlPanelProps {
   onDcCurves: () => void;
   onFlowAnalysis: () => void;
   onThroughputResult: (data: ThroughputResponse) => void;
+  onPinReference: () => void;
+  onClearReference: () => void;
+  refLabel: string | null;
+  isPinning: boolean;
   analyzeData: AnalyzeResponse | null;
   flowData: FlowAnalysisResponse | null;
   throughputData: ThroughputResponse | null;
@@ -55,6 +59,10 @@ export function ControlPanel({
   onDcCurves,
   onFlowAnalysis,
   onThroughputResult,
+  onPinReference,
+  onClearReference,
+  refLabel,
+  isPinning,
   analyzeData,
   flowData,
   throughputData,
@@ -296,6 +304,32 @@ export function ControlPanel({
             Flow Analysis
           </Button>
         </div>
+
+        {/* Compare / Pin Reference */}
+        {refLabel ? (
+          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md border border-[#EF9F27]/40 bg-[#EF9F27]/8 text-[#EF9F27]">
+            <BookmarkX className="w-3 h-3 shrink-0" />
+            <span className="flex-1 font-mono text-[10px] uppercase tracking-wider truncate">
+              Ref: {refLabel}
+            </span>
+            <button
+              onClick={onClearReference}
+              className="ml-auto text-[9px] font-mono uppercase tracking-wider opacity-70 hover:opacity-100 transition-opacity"
+            >
+              Clear
+            </button>
+          </div>
+        ) : (
+          <Button
+            variant="outline"
+            onClick={onPinReference}
+            disabled={isLoading || isPinning}
+            className="w-full font-mono text-[10px] uppercase tracking-wider h-8 border-dashed border-[#EF9F27]/50 bg-[#EF9F27]/5 hover:bg-[#EF9F27]/10 text-[#EF9F27] hover:text-[#EF9F27]"
+          >
+            <BookmarkPlus className="w-3 h-3 mr-1.5" />
+            {isPinning ? "Pinning…" : "Pin Reference"}
+          </Button>
+        )}
 
       </div>
     </aside>

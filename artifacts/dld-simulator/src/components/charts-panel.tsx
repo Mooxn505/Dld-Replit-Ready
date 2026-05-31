@@ -7,9 +7,12 @@ interface ChartsPanelProps {
   dcCurveData: DcCurveResponse | null;
   flowData: FlowAnalysisResponse | null;
   throughputData: ThroughputResponse | null;
+  refDcData?: DcCurveResponse | null;
+  refFlowData?: FlowAnalysisResponse | null;
+  refLabel?: string | null;
 }
 
-export function ChartsPanel({ sweepData, dcCurveData, flowData, throughputData }: ChartsPanelProps) {
+export function ChartsPanel({ sweepData, dcCurveData, flowData, throughputData, refDcData, refFlowData, refLabel }: ChartsPanelProps) {
   if (!sweepData && !dcCurveData && !flowData && !throughputData) return null;
 
   return (
@@ -30,12 +33,19 @@ export function ChartsPanel({ sweepData, dcCurveData, flowData, throughputData }
       {/* Dc Curves */}
       {dcCurveData && (
         <div className="bg-card border border-border/50 rounded-lg p-4 flex flex-col min-h-[350px]">
-          <div className="mb-4">
-            <h3 className="text-sm font-mono font-bold uppercase tracking-widest">Critical Diameter (Dc)</h3>
-            <p className="text-[10px] font-mono text-muted-foreground">Davis formula vs Pillar Gap (G)</p>
+          <div className="mb-4 flex items-start justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-mono font-bold uppercase tracking-widest">Critical Diameter (Dc)</h3>
+              <p className="text-[10px] font-mono text-muted-foreground">Davis formula vs Pillar Gap (G)</p>
+            </div>
+            {refLabel && refDcData && (
+              <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider border border-[#EF9F27]/40 text-[#EF9F27] bg-[#EF9F27]/8">
+                vs {refLabel}
+              </span>
+            )}
           </div>
           <div className="flex-1 w-full relative">
-            <DcLineChart data={dcCurveData} />
+            <DcLineChart data={dcCurveData} refData={refDcData} refLabel={refLabel} />
           </div>
         </div>
       )}
@@ -121,7 +131,7 @@ export function ChartsPanel({ sweepData, dcCurveData, flowData, throughputData }
             </div>
           </div>
           <div className="flex-1 w-full min-h-[260px]">
-            <FlowChart data={flowData} />
+            <FlowChart data={flowData} refData={refFlowData} refLabel={refLabel} />
           </div>
         </div>
       )}
@@ -241,16 +251,17 @@ const REGIME_COLORS: Record<string, string> = {
   "inertial":    "rgba(226,75,74,0.14)",
 };
 
-function FlowChart({ data }: { data: FlowAnalysisResponse }) {
+function FlowChart({ data, refData, refLabel }: { data: FlowAnalysisResponse; refData?: FlowAnalysisResponse | null; refLabel?: string | null }) {
   const chartData = useMemo(() => {
-    return data.points.map((p) => ({
+    return data.points.map((p, i) => ({
       v: p.v_mm_s,
       Re: p.Re,
       eff: p.efficiency,
       Q: p.flow_rate_ul_min,
       regime: p.regime,
+      refEff: refData?.points[i]?.efficiency ?? undefined,
     }));
-  }, [data]);
+  }, [data, refData]);
 
   const regimeBands = useMemo(() => {
     const bands: { x1: number; x2: number; regime: string }[] = [];
@@ -333,11 +344,10 @@ function FlowChart({ data }: { data: FlowAnalysisResponse }) {
           height={28}
           iconType="circle"
           wrapperStyle={{ fontSize: 9, fontFamily: "monospace" }}
-          formatter={(value) => {
-            const labels: Record<string, string> = {
-              eff: "Sorting efficiency (%)",
-            };
-            return labels[value] ?? value;
+          formatter={(value: string) => {
+            if (value === "eff") return "Efficiency (%)";
+            if (value === "refEff") return `Ref (${refLabel ?? "pinned"}) Eff (%)`;
+            return value;
           }}
         />
         <Line
@@ -349,21 +359,53 @@ function FlowChart({ data }: { data: FlowAnalysisResponse }) {
           dot={false}
           activeDot={{ r: 4, fill: "#1D9E75" }}
         />
+        {refData && (
+          <Line
+            type="monotone"
+            dataKey="refEff"
+            name="refEff"
+            stroke="#EF9F27"
+            strokeWidth={1.5}
+            strokeDasharray="5 3"
+            dot={false}
+            activeDot={{ r: 3, fill: "#EF9F27" }}
+            connectNulls={false}
+          />
+        )}
+        {refData && (
+          <ReferenceLine
+            x={refData.optimal_v_max_mm_s}
+            stroke="#EF9F27"
+            strokeDasharray="2 4"
+            strokeWidth={1}
+            strokeOpacity={0.55}
+          />
+        )}
       </LineChart>
     </ResponsiveContainer>
   );
 }
 
-function DcLineChart({ data }: { data: DcCurveResponse }) {
+function DcLineChart({ data, refData, refLabel }: { data: DcCurveResponse; refData?: DcCurveResponse | null; refLabel?: string | null }) {
   const chartData = useMemo(() => {
-    return data.G_vals.map((g, i) => {
-      const pt: any = { G: g };
-      data.curves.forEach(c => {
-        pt[`N${c.N}`] = c.Dc_vals[i];
-      });
+    const primary = data.G_vals.map((g, i) => {
+      const pt: Record<string, number> = { G: g };
+      data.curves.forEach(c => { pt[`N${c.N}`] = c.Dc_vals[i]; });
       return pt;
     });
-  }, [data]);
+    if (refData) {
+      const refByG: Record<number, Record<string, number>> = {};
+      refData.G_vals.forEach((g, i) => {
+        refByG[g] = {};
+        refData.curves.forEach(c => { refByG[g][`refN${c.N}`] = c.Dc_vals[i]; });
+      });
+      primary.forEach(pt => {
+        const refPt = refByG[pt.G];
+        if (refPt) Object.assign(pt, refPt);
+      });
+    }
+    return primary;
+  }, [data, refData]);
 
   const colors = ["#E24B4A", "#378ADD", "#10b981", "#f59e0b", "#8b5cf6", "#6366f1"];
 
@@ -390,16 +432,26 @@ function DcLineChart({ data }: { data: DcCurveResponse }) {
         <Tooltip 
           contentStyle={{ backgroundColor: "hsl(var(--card))", borderColor: "hsl(var(--border))", fontSize: 12, fontFamily: "monospace", borderRadius: 8 }}
           itemStyle={{ color: "hsl(var(--foreground))" }}
+          formatter={(value: number, name: string) => {
+            const isRef = name.startsWith("refN");
+            const label = isRef ? `Ref N=${name.slice(4)} (${refLabel ?? "pinned"})` : name;
+            return [value.toFixed(2) + " µm", label];
+          }}
         />
         <Legend 
           verticalAlign="top" 
           height={36}
           iconType="circle"
           wrapperStyle={{ fontSize: 10, fontFamily: "monospace" }}
+          formatter={(value: string) => {
+            if (value.startsWith("refN")) return `Ref N=${value.slice(4)}`;
+            return value;
+          }}
         />
+        {/* Current geometry curves */}
         {data.curves.map((c, i) => (
           <Line 
-            key={c.N} 
+            key={`cur-${c.N}`}
             type="monotone" 
             dataKey={`N${c.N}`} 
             name={`N=${c.N}`} 
@@ -407,6 +459,22 @@ function DcLineChart({ data }: { data: DcCurveResponse }) {
             strokeWidth={2}
             dot={false}
             activeDot={{ r: 4 }}
+          />
+        ))}
+        {/* Reference geometry curves — same color, dashed, thinner */}
+        {refData && refData.curves.map((c, i) => (
+          <Line
+            key={`ref-${c.N}`}
+            type="monotone"
+            dataKey={`refN${c.N}`}
+            name={`refN${c.N}`}
+            stroke={colors[i % colors.length]}
+            strokeWidth={1.5}
+            strokeDasharray="5 3"
+            strokeOpacity={0.65}
+            dot={false}
+            activeDot={{ r: 3 }}
+            connectNulls={false}
           />
         ))}
       </LineChart>

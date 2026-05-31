@@ -4,9 +4,9 @@ import { ControlPanel } from "@/components/control-panel";
 import { TrajectoryVisualizer } from "@/components/trajectory-visualizer";
 import { ChartsPanel } from "@/components/charts-panel";
 import { motion } from "framer-motion";
-import { 
-  type AnalyzeResponse, 
-  type SweepResponse, 
+import {
+  type AnalyzeResponse,
+  type SweepResponse,
   type DcCurveResponse,
   type FlowAnalysisResponse,
   type ThroughputResponse,
@@ -26,10 +26,16 @@ export default function Home() {
   const [flowData, setFlowData] = useState<FlowAnalysisResponse | null>(null);
   const [throughputData, setThroughputData] = useState<ThroughputResponse | null>(null);
 
+  const [refDcData, setRefDcData] = useState<DcCurveResponse | null>(null);
+  const [refFlowData, setRefFlowData] = useState<FlowAnalysisResponse | null>(null);
+  const [refLabel, setRefLabel] = useState<string | null>(null);
+
   const analyzeParticles = useAnalyzeParticles();
   const sweepGeometry = useSweepGeometry();
   const getDcCurve = useGetDcCurve();
   const analyzeFlow = useAnalyzeFlowRate();
+  const getDcCurveRef = useGetDcCurve();
+  const analyzeFlowRef = useAnalyzeFlowRate();
   const { data: cells } = useGetCells();
 
   // Initial analysis on mount
@@ -65,6 +71,24 @@ export default function Home() {
     );
   };
 
+  const pinReference = () => {
+    setRefLabel(`G=${G} N=${N}`);
+    getDcCurveRef.mutate(
+      { data: { N_values: [3, 5, 7, 10] } },
+      { onSuccess: (data) => setRefDcData(data) }
+    );
+    analyzeFlowRef.mutate(
+      { data: { d1, d2, G, N } },
+      { onSuccess: (data) => setRefFlowData(data) }
+    );
+  };
+
+  const clearReference = () => {
+    setRefDcData(null);
+    setRefFlowData(null);
+    setRefLabel(null);
+  };
+
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden text-foreground selection:bg-primary/30">
       <ControlPanel
@@ -86,6 +110,10 @@ export default function Home() {
         onDcCurves={runDcCurves}
         onFlowAnalysis={runFlowAnalysis}
         onThroughputResult={setThroughputData}
+        onPinReference={pinReference}
+        onClearReference={clearReference}
+        refLabel={refLabel}
+        isPinning={getDcCurveRef.isPending || analyzeFlowRef.isPending}
         analyzeData={analyzeData}
         flowData={flowData}
         throughputData={throughputData}
@@ -120,7 +148,15 @@ export default function Home() {
             transition={{ duration: 0.4, delay: 0.1 }}
             className="flex-1 min-h-[400px]"
           >
-            <ChartsPanel sweepData={sweepData} dcCurveData={dcCurveData} flowData={flowData} throughputData={throughputData} />
+            <ChartsPanel
+              sweepData={sweepData}
+              dcCurveData={dcCurveData}
+              flowData={flowData}
+              throughputData={throughputData}
+              refDcData={refDcData}
+              refFlowData={refFlowData}
+              refLabel={refLabel}
+            />
           </motion.div>
         </div>
       </main>
