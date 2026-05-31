@@ -156,6 +156,8 @@ export default function Home() {
               refDcData={refDcData}
               refFlowData={refFlowData}
               refLabel={refLabel}
+              currentG={G}
+              currentN={N}
             />
           </motion.div>
         </div>

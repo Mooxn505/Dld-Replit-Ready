@@ -10,13 +10,172 @@ interface ChartsPanelProps {
   refDcData?: DcCurveResponse | null;
   refFlowData?: FlowAnalysisResponse | null;
   refLabel?: string | null;
+  currentG?: number;
+  currentN?: number;
 }
 
-export function ChartsPanel({ sweepData, dcCurveData, flowData, throughputData, refDcData, refFlowData, refLabel }: ChartsPanelProps) {
+function DiffStat({
+  label,
+  current,
+  reference,
+  unit,
+  higherIsBetter = true,
+  fmt = (v: number) => v.toFixed(2),
+}: {
+  label: string;
+  current: number | undefined;
+  reference: number | undefined;
+  unit: string;
+  higherIsBetter?: boolean;
+  fmt?: (v: number) => string;
+}) {
+  if (current === undefined || reference === undefined) return null;
+  const delta = current - reference;
+  const pct = reference !== 0 ? (delta / Math.abs(reference)) * 100 : 0;
+  const improved = higherIsBetter ? delta > 0 : delta < 0;
+  const neutral = Math.abs(pct) < 0.5;
+  const color = neutral ? "text-muted-foreground" : improved ? "text-[#1D9E75]" : "text-[#E24B4A]";
+  const arrow = neutral ? "→" : delta > 0 ? "▲" : "▼";
+
+  return (
+    <div className="flex-1 min-w-0 bg-muted/15 border border-border/30 rounded-lg px-3 py-2.5 space-y-1">
+      <div className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider">{label}</div>
+      <div className="flex items-baseline gap-1.5 flex-wrap">
+        <span className="text-[13px] font-mono font-bold text-foreground/90">{fmt(current)}</span>
+        <span className="text-[9px] font-mono text-muted-foreground">{unit}</span>
+      </div>
+      <div className={`flex items-center gap-1 text-[10px] font-mono ${color}`}>
+        <span>{arrow}</span>
+        <span>{neutral ? "no change" : `${delta > 0 ? "+" : ""}${fmt(delta)} vs ${fmt(reference)}`}</span>
+        {!neutral && <span className="text-[9px] opacity-70">({pct > 0 ? "+" : ""}{pct.toFixed(1)}%)</span>}
+      </div>
+    </div>
+  );
+}
+
+function ComparisonDiffCard({
+  refLabel,
+  currentG,
+  currentN,
+  dcCurveData,
+  refDcData,
+  flowData,
+  refFlowData,
+}: {
+  refLabel: string;
+  currentG?: number;
+  currentN?: number;
+  dcCurveData?: DcCurveResponse | null;
+  refDcData?: DcCurveResponse | null;
+  flowData?: FlowAnalysisResponse | null;
+  refFlowData?: FlowAnalysisResponse | null;
+}) {
+  const dcComparison = useMemo(() => {
+    if (!dcCurveData || !refDcData || currentG === undefined || currentN === undefined) return null;
+    const closestGIdx = dcCurveData.G_vals.reduce(
+      (best, g, i) => Math.abs(g - currentG) < Math.abs(dcCurveData.G_vals[best] - currentG) ? i : best,
+      0
+    );
+    const refClosestGIdx = refDcData.G_vals.reduce(
+      (best, g, i) => Math.abs(g - currentG) < Math.abs(refDcData.G_vals[best] - currentG) ? i : best,
+      0
+    );
+    const curCurve = dcCurveData.curves.find(c => c.N === currentN);
+    const refCurve = refDcData.curves.find(c => c.N === currentN);
+    if (!curCurve || !refCurve) return null;
+    return {
+      current: curCurve.Dc_vals[closestGIdx],
+      reference: refCurve.Dc_vals[refClosestGIdx],
+    };
+  }, [dcCurveData, refDcData, currentG, currentN]);
+
+  const hasFlow = flowData && refFlowData;
+  const hasDc = dcComparison !== null;
+  if (!hasFlow && !hasDc) return null;
+
+  return (
+    <div className="bg-card border border-[#EF9F27]/30 rounded-lg p-4 lg:col-span-2">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-2 h-2 rounded-full bg-[#EF9F27] shrink-0" />
+        <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-[#EF9F27]">
+          Δ vs Reference ({refLabel})
+        </h3>
+        <span className="ml-auto text-[9px] font-mono text-muted-foreground">current shown first · green = improvement</span>
+      </div>
+      <div className="flex gap-2 flex-wrap">
+        {hasDc && (
+          <DiffStat
+            label={`Dc at G≈${currentG} N=${currentN}`}
+            current={dcComparison!.current}
+            reference={dcComparison!.reference}
+            unit="µm"
+            higherIsBetter={true}
+            fmt={(v) => v.toFixed(2)}
+          />
+        )}
+        {hasFlow && (
+          <DiffStat
+            label="Ideal efficiency"
+            current={flowData.ideal_efficiency}
+            reference={refFlowData.ideal_efficiency}
+            unit="%"
+            higherIsBetter={true}
+            fmt={(v) => v.toFixed(1)}
+          />
+        )}
+        {hasFlow && (
+          <DiffStat
+            label="Q max"
+            current={flowData.optimal_q_max_ul_min}
+            reference={refFlowData.optimal_q_max_ul_min}
+            unit="µL/min"
+            higherIsBetter={true}
+            fmt={(v) => v.toFixed(3)}
+          />
+        )}
+        {hasFlow && (
+          <DiffStat
+            label="v max"
+            current={flowData.optimal_v_max_mm_s}
+            reference={refFlowData.optimal_v_max_mm_s}
+            unit="mm/s"
+            higherIsBetter={true}
+            fmt={(v) => v.toFixed(3)}
+          />
+        )}
+        {hasFlow && (
+          <DiffStat
+            label="Channel Re"
+            current={flowData.re_crit}
+            reference={refFlowData.re_crit}
+            unit=""
+            higherIsBetter={false}
+            fmt={(v) => v.toFixed(4)}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function ChartsPanel({ sweepData, dcCurveData, flowData, throughputData, refDcData, refFlowData, refLabel, currentG, currentN }: ChartsPanelProps) {
   if (!sweepData && !dcCurveData && !flowData && !throughputData) return null;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
+      {/* Comparison diff card — shown when reference is pinned */}
+      {refLabel && (
+        <ComparisonDiffCard
+          refLabel={refLabel}
+          currentG={currentG}
+          currentN={currentN}
+          dcCurveData={dcCurveData}
+          refDcData={refDcData}
+          flowData={flowData}
+          refFlowData={refFlowData}
+        />
+      )}
+
       {/* Sweep Heatmap */}
       {sweepData && (
         <div className="bg-card border border-border/50 rounded-lg p-4 flex flex-col min-h-[350px]">
