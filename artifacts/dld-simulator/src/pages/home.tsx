@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useGetCells, useAnalyzeParticles, useSweepGeometry, useGetDcCurve, useAnalyzeFlowRate } from "@workspace/api-client-react";
+import { useGetCells, useAnalyzeParticles, useSweepGeometry, useGetDcCurve, useAnalyzeFlowRate, useEstimateThroughput } from "@workspace/api-client-react";
 import { ControlPanel } from "@/components/control-panel";
 import { TrajectoryVisualizer } from "@/components/trajectory-visualizer";
 import { ChartsPanel } from "@/components/charts-panel";
@@ -9,6 +9,7 @@ import {
   type SweepResponse, 
   type DcCurveResponse,
   type FlowAnalysisResponse,
+  type ThroughputResponse,
 } from "@workspace/api-client-react/src/generated/api.schemas";
 
 export default function Home() {
@@ -23,11 +24,15 @@ export default function Home() {
   const [sweepData, setSweepData] = useState<SweepResponse | null>(null);
   const [dcCurveData, setDcCurveData] = useState<DcCurveResponse | null>(null);
   const [flowData, setFlowData] = useState<FlowAnalysisResponse | null>(null);
+  const [throughputData, setThroughputData] = useState<ThroughputResponse | null>(null);
+  const [concentration, setConcentration] = useState<number>(5e6);
+  const [sampleVolume, setSampleVolume] = useState<number>(1.0);
 
   const analyzeParticles = useAnalyzeParticles();
   const sweepGeometry = useSweepGeometry();
   const getDcCurve = useGetDcCurve();
   const analyzeFlow = useAnalyzeFlowRate();
+  const estimateThroughput = useEstimateThroughput();
   const { data: cells } = useGetCells();
 
   // Initial analysis on mount
@@ -63,6 +68,13 @@ export default function Home() {
     );
   };
 
+  const runThroughput = () => {
+    estimateThroughput.mutate(
+      { data: { d1, d2, G, N, concentration_cells_per_ml: concentration, sample_volume_ml: sampleVolume } },
+      { onSuccess: (data) => setThroughputData(data) }
+    );
+  };
+
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden text-foreground selection:bg-primary/30">
       <ControlPanel
@@ -79,11 +91,16 @@ export default function Home() {
         setG={setG}
         N={N}
         setN={setN}
+        concentration={concentration}
+        setConcentration={setConcentration}
+        sampleVolume={sampleVolume}
+        setSampleVolume={setSampleVolume}
         onAnalyze={() => runAnalysis()}
         onSweep={runSweep}
         onDcCurves={runDcCurves}
         onFlowAnalysis={runFlowAnalysis}
-        isLoading={analyzeParticles.isPending || sweepGeometry.isPending || getDcCurve.isPending || analyzeFlow.isPending}
+        onThroughput={runThroughput}
+        isLoading={analyzeParticles.isPending || sweepGeometry.isPending || getDcCurve.isPending || analyzeFlow.isPending || estimateThroughput.isPending}
       />
       
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative border-l border-border/50">
@@ -114,7 +131,7 @@ export default function Home() {
             transition={{ duration: 0.4, delay: 0.1 }}
             className="flex-1 min-h-[400px]"
           >
-            <ChartsPanel sweepData={sweepData} dcCurveData={dcCurveData} flowData={flowData} />
+            <ChartsPanel sweepData={sweepData} dcCurveData={dcCurveData} flowData={flowData} throughputData={throughputData} />
           </motion.div>
         </div>
       </main>

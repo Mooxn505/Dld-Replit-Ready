@@ -126,6 +126,38 @@ export const AnalyzeFlowRateResponse = zod.object({
 
 
 /**
+ * Given chip geometry and sample parameters, computes cells-per-minute at the optimal flow rate, total processing time, and expected cell recovery. Internally runs the same Re-degradation flow model.
+
+ * @summary Estimate cell throughput
+ */
+export const EstimateThroughputBody = zod.object({
+  "d1": zod.number().describe('Diameter of particle 1 (µm)'),
+  "d2": zod.number().describe('Diameter of particle 2 (µm)'),
+  "G": zod.number().describe('Pillar gap (µm)'),
+  "N": zod.number().describe('Array period'),
+  "concentration_cells_per_ml": zod.number().describe('Cell concentration in sample (cells\/mL)'),
+  "sample_volume_ml": zod.number().optional().describe('Total sample volume to process (mL, default 1.0)'),
+  "channel_height_um": zod.number().optional().describe('Channel height in µm (default 50)'),
+  "channel_width_um": zod.number().optional().describe('Channel width in µm (default 500)')
+})
+
+export const EstimateThroughputResponse = zod.object({
+  "optimal_q_max_ul_min": zod.number().describe('Maximum optimal flow rate (µL\/min)'),
+  "throughput_cells_per_min": zod.number().describe('Cells processed per minute at optimal Q_max'),
+  "throughput_cells_per_hour": zod.number().describe('Cells processed per hour at optimal Q_max'),
+  "processing_time_min": zod.number().describe('Minutes to process the full sample at optimal Q_max'),
+  "total_cells_in_sample": zod.number().describe('Total cells in the input sample'),
+  "recovered_cells": zod.number().describe('Estimated recovered (correctly sorted) cells'),
+  "efficiency_at_optimal": zod.number().describe('Sorting efficiency (%) at optimal flow rate'),
+  "concentration_cells_per_ml": zod.number(),
+  "sample_volume_ml": zod.number(),
+  "Dc": zod.number().describe('Critical diameter (µm)'),
+  "channel_height_um": zod.number(),
+  "channel_width_um": zod.number()
+})
+
+
+/**
  * Returns 3 validated DLD chip geometries optimised for different sorting tasks
  * @summary Get preset chip geometries
  */

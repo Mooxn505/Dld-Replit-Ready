@@ -77,6 +77,63 @@ function volumetricFlowRate(v_mm_s: number, width_um: number, height_um: number)
   return v_mm_s * w_mm * h_mm * 60 / 1000;
 }
 
+export interface ThroughputResult {
+  optimal_q_max_ul_min: number;
+  throughput_cells_per_min: number;
+  throughput_cells_per_hour: number;
+  processing_time_min: number;
+  total_cells_in_sample: number;
+  recovered_cells: number;
+  efficiency_at_optimal: number;
+  concentration_cells_per_ml: number;
+  sample_volume_ml: number;
+  Dc: number;
+  channel_height_um: number;
+  channel_width_um: number;
+}
+
+export function computeThroughput(
+  d1: number,
+  d2: number,
+  G: number,
+  N: number,
+  concentrationCellsPerMl: number,
+  sampleVolumeMl = 1.0,
+  channelHeightUm = 50,
+  channelWidthUm = 500,
+): ThroughputResult {
+  const flow = analyzeFlowRate(d1, d2, G, N, channelHeightUm, channelWidthUm);
+
+  // Use the max of the optimal operating window
+  const optQMax = flow.optimal_q_max_ul_min; // µL/min
+  const effFraction = flow.ideal_efficiency / 100;
+
+  // Throughput: Q [µL/min] × 1e-3 [mL/µL] × concentration [cells/mL]
+  const cellsPerMin = optQMax * 1e-3 * concentrationCellsPerMl;
+  const cellsPerHour = cellsPerMin * 60;
+
+  const totalCells = sampleVolumeMl * concentrationCellsPerMl;
+  // Processing time: sample_volume [mL] / (Q_max [µL/min] × 1e-3 [mL/µL])
+  const processingTimeMin = optQMax > 0 ? sampleVolumeMl / (optQMax * 1e-3) : Infinity;
+
+  const recoveredCells = Math.round(totalCells * effFraction);
+
+  return {
+    optimal_q_max_ul_min: Math.round(optQMax * 1000) / 1000,
+    throughput_cells_per_min: Math.round(cellsPerMin),
+    throughput_cells_per_hour: Math.round(cellsPerHour),
+    processing_time_min: Math.round(processingTimeMin * 10) / 10,
+    total_cells_in_sample: Math.round(totalCells),
+    recovered_cells: recoveredCells,
+    efficiency_at_optimal: flow.ideal_efficiency,
+    concentration_cells_per_ml: concentrationCellsPerMl,
+    sample_volume_ml: sampleVolumeMl,
+    Dc: flow.Dc,
+    channel_height_um: channelHeightUm,
+    channel_width_um: channelWidthUm,
+  };
+}
+
 export function analyzeFlowRate(
   d1: number,
   d2: number,

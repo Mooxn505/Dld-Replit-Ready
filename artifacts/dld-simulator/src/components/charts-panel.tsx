@@ -1,15 +1,16 @@
 import { useMemo } from "react";
-import type { SweepResponse, DcCurveResponse, FlowAnalysisResponse } from "@workspace/api-client-react/src/generated/api.schemas";
+import type { SweepResponse, DcCurveResponse, FlowAnalysisResponse, ThroughputResponse } from "@workspace/api-client-react/src/generated/api.schemas";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, ReferenceArea } from "recharts";
 
 interface ChartsPanelProps {
   sweepData: SweepResponse | null;
   dcCurveData: DcCurveResponse | null;
   flowData: FlowAnalysisResponse | null;
+  throughputData: ThroughputResponse | null;
 }
 
-export function ChartsPanel({ sweepData, dcCurveData, flowData }: ChartsPanelProps) {
-  if (!sweepData && !dcCurveData && !flowData) return null;
+export function ChartsPanel({ sweepData, dcCurveData, flowData, throughputData }: ChartsPanelProps) {
+  if (!sweepData && !dcCurveData && !flowData && !throughputData) return null;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
@@ -39,6 +40,69 @@ export function ChartsPanel({ sweepData, dcCurveData, flowData }: ChartsPanelPro
         </div>
       )}
 
+      {/* Throughput Estimator Card */}
+      {throughputData && (
+        <div className="bg-card border border-border/50 rounded-lg p-4 flex flex-col gap-3 lg:col-span-2">
+          <div className="flex items-center gap-2 mb-1">
+            <svg className="w-3.5 h-3.5 text-[#1D9E75] shrink-0" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
+            </svg>
+            <h3 className="text-sm font-mono font-bold uppercase tracking-widest">Throughput Estimator</h3>
+            <span className="ml-auto text-[9px] font-mono text-muted-foreground uppercase tracking-wider">
+              @ Q<sub>max</sub> = {throughputData.optimal_q_max_ul_min} µL/min · Eff = {throughputData.efficiency_at_optimal}%
+            </span>
+          </div>
+
+          {/* Primary metrics row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <ThroughputStat
+              label="Throughput"
+              value={formatCells(throughputData.throughput_cells_per_min)}
+              unit="cells / min"
+              accent
+            />
+            <ThroughputStat
+              label="Per hour"
+              value={formatCells(throughputData.throughput_cells_per_hour)}
+              unit="cells / hr"
+              accent
+            />
+            <ThroughputStat
+              label="Processing time"
+              value={formatTime(throughputData.processing_time_min)}
+              unit={`for ${throughputData.sample_volume_ml} mL sample`}
+            />
+            <ThroughputStat
+              label="Cell recovery"
+              value={`${formatCells(throughputData.recovered_cells)} / ${formatCells(throughputData.total_cells_in_sample)}`}
+              unit={`${throughputData.efficiency_at_optimal}% efficiency`}
+            />
+          </div>
+
+          {/* Recovery bar */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-[9px] font-mono text-muted-foreground uppercase tracking-wider">
+              <span>Cell recovery</span>
+              <span>{throughputData.total_cells_in_sample > 0 ? ((throughputData.recovered_cells / throughputData.total_cells_in_sample) * 100).toFixed(1) : "—"}%</span>
+            </div>
+            <div className="h-2 bg-muted/40 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#1D9E75] to-[#2DD4AA] transition-all duration-700"
+                style={{ width: `${throughputData.total_cells_in_sample > 0 ? (throughputData.recovered_cells / throughputData.total_cells_in_sample) * 100 : 0}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Input summary */}
+          <div className="flex gap-4 pt-1 border-t border-border/30">
+            <span className="text-[9px] font-mono text-muted-foreground">Input: {formatCells(throughputData.concentration_cells_per_ml)} cells/mL</span>
+            <span className="text-[9px] font-mono text-muted-foreground">Sample: {throughputData.sample_volume_ml} mL</span>
+            <span className="text-[9px] font-mono text-muted-foreground">Dc: {throughputData.Dc.toFixed(2)} µm</span>
+            <span className="text-[9px] font-mono text-muted-foreground">Channel: {throughputData.channel_height_um}×{throughputData.channel_width_um} µm</span>
+          </div>
+        </div>
+      )}
+
       {/* Flow Rate Analysis */}
       {flowData && (
         <div className="bg-card border border-border/50 rounded-lg p-4 flex flex-col min-h-[350px] lg:col-span-2">
@@ -61,6 +125,30 @@ export function ChartsPanel({ sweepData, dcCurveData, flowData }: ChartsPanelPro
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function formatCells(n: number): string {
+  if (n >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
+  if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(1)}k`;
+  return n.toFixed(0);
+}
+
+function formatTime(min: number): string {
+  if (!isFinite(min)) return "∞";
+  if (min < 1) return `${(min * 60).toFixed(1)}s`;
+  if (min < 60) return `${min.toFixed(1)} min`;
+  return `${(min / 60).toFixed(1)} hr`;
+}
+
+function ThroughputStat({ label, value, unit, accent }: { label: string; value: string; unit: string; accent?: boolean }) {
+  return (
+    <div className="bg-muted/20 border border-border/30 rounded-lg px-3 py-2.5">
+      <div className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider mb-0.5">{label}</div>
+      <div className={`text-sm font-mono font-bold tabular-nums leading-tight ${accent ? "text-[#1D9E75]" : "text-foreground/90"}`}>{value}</div>
+      <div className="text-[9px] font-mono text-muted-foreground mt-0.5">{unit}</div>
     </div>
   );
 }

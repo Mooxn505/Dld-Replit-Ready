@@ -124,6 +124,35 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /dld/throughput:
+    post:
+      operationId: estimateThroughput
+      tags: [dld]
+      summary: Estimate cell throughput
+      description: >
+        Given chip geometry and sample parameters, computes cells-per-minute
+        at the optimal flow rate, total processing time, and expected cell
+        recovery. Internally runs the same Re-degradation flow model.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DldThroughputInput"
+      responses:
+        "200":
+          description: Throughput estimate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ThroughputResponse"
+        "400":
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /dld/presets:
     get:
       operationId: getDldPresets
@@ -432,6 +461,84 @@ components:
         re_crit:
           type: number
           description: Reynolds number where efficiency drops to 50%
+        channel_height_um:
+          type: number
+        channel_width_um:
+          type: number
+
+    DldThroughputInput:
+      type: object
+      required: [d1, d2, G, N, concentration_cells_per_ml]
+      properties:
+        d1:
+          type: number
+          description: Diameter of particle 1 (µm)
+        d2:
+          type: number
+          description: Diameter of particle 2 (µm)
+        G:
+          type: number
+          description: Pillar gap (µm)
+        N:
+          type: integer
+          description: Array period
+        concentration_cells_per_ml:
+          type: number
+          description: Cell concentration in sample (cells/mL)
+        sample_volume_ml:
+          type: number
+          description: Total sample volume to process (mL, default 1.0)
+        channel_height_um:
+          type: number
+          description: Channel height in µm (default 50)
+        channel_width_um:
+          type: number
+          description: Channel width in µm (default 500)
+
+    ThroughputResponse:
+      type: object
+      required:
+        - optimal_q_max_ul_min
+        - throughput_cells_per_min
+        - throughput_cells_per_hour
+        - processing_time_min
+        - total_cells_in_sample
+        - recovered_cells
+        - efficiency_at_optimal
+        - concentration_cells_per_ml
+        - sample_volume_ml
+        - Dc
+        - channel_height_um
+        - channel_width_um
+      properties:
+        optimal_q_max_ul_min:
+          type: number
+          description: Maximum optimal flow rate (µL/min)
+        throughput_cells_per_min:
+          type: number
+          description: Cells processed per minute at optimal Q_max
+        throughput_cells_per_hour:
+          type: number
+          description: Cells processed per hour at optimal Q_max
+        processing_time_min:
+          type: number
+          description: Minutes to process the full sample at optimal Q_max
+        total_cells_in_sample:
+          type: number
+          description: Total cells in the input sample
+        recovered_cells:
+          type: number
+          description: Estimated recovered (correctly sorted) cells
+        efficiency_at_optimal:
+          type: number
+          description: Sorting efficiency (%) at optimal flow rate
+        concentration_cells_per_ml:
+          type: number
+        sample_volume_ml:
+          type: number
+        Dc:
+          type: number
+          description: Critical diameter (µm)
         channel_height_um:
           type: number
         channel_width_um:

@@ -28,12 +28,14 @@ import type {
   DldFlowInput,
   DldPreset,
   DldSweepInput,
+  DldThroughputInput,
   DxfExportInput,
   DxfExportResponse,
   ErrorResponse,
   FlowAnalysisResponse,
   HealthStatus,
-  SweepResponse
+  SweepResponse,
+  ThroughputResponse
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -419,6 +421,79 @@ export const useAnalyzeFlowRate = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getAnalyzeFlowRateMutationOptions(options));
+    }
+
+export const getEstimateThroughputUrl = () => {
+
+
+
+
+  return `/api/dld/throughput`
+}
+
+/**
+ * Given chip geometry and sample parameters, computes cells-per-minute at the optimal flow rate, total processing time, and expected cell recovery. Internally runs the same Re-degradation flow model.
+
+ * @summary Estimate cell throughput
+ */
+export const estimateThroughput = async (dldThroughputInput: DldThroughputInput, options?: RequestInit): Promise<ThroughputResponse> => {
+
+  return customFetch<ThroughputResponse>(getEstimateThroughputUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      dldThroughputInput,)
+  }
+);}
+
+
+
+
+export const getEstimateThroughputMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof estimateThroughput>>, TError,{data: BodyType<DldThroughputInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof estimateThroughput>>, TError,{data: BodyType<DldThroughputInput>}, TContext> => {
+
+const mutationKey = ['estimateThroughput'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof estimateThroughput>>, {data: BodyType<DldThroughputInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  estimateThroughput(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EstimateThroughputMutationResult = NonNullable<Awaited<ReturnType<typeof estimateThroughput>>>
+    export type EstimateThroughputMutationBody = BodyType<DldThroughputInput>
+    export type EstimateThroughputMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Estimate cell throughput
+ */
+export const useEstimateThroughput = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof estimateThroughput>>, TError,{data: BodyType<DldThroughputInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof estimateThroughput>>,
+        TError,
+        {data: BodyType<DldThroughputInput>},
+        TContext
+      > => {
+      return useMutation(getEstimateThroughputMutationOptions(options));
     }
 
 export const getGetDldPresetsUrl = () => {

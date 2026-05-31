@@ -5,6 +5,7 @@ import {
   GetDcCurveBody,
   ExportDxfBody,
   AnalyzeFlowRateBody,
+  EstimateThroughputBody,
 } from "@workspace/api-zod";
 import {
   CELL_LIBRARY,
@@ -16,7 +17,7 @@ import {
   criticalDiameter,
 } from "../lib/dld";
 import { generateDxf } from "../lib/dxf";
-import { analyzeFlowRate } from "../lib/flow";
+import { analyzeFlowRate, computeThroughput } from "../lib/flow";
 
 const router: IRouter = Router();
 
@@ -98,6 +99,34 @@ router.post("/dld/export-dxf", async (req, res): Promise<void> => {
   } catch (err) {
     req.log.error({ err }, "DXF export failed");
     res.status(400).json({ error: "DXF generation failed" });
+  }
+});
+
+router.post("/dld/throughput", async (req, res): Promise<void> => {
+  const parsed = EstimateThroughputBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { d1, d2, G, N, concentration_cells_per_ml, sample_volume_ml, channel_height_um, channel_width_um } = parsed.data;
+
+  try {
+    const result = computeThroughput(
+      d1, d2, G, N,
+      concentration_cells_per_ml,
+      sample_volume_ml ?? undefined,
+      channel_height_um ?? undefined,
+      channel_width_um ?? undefined,
+    );
+    req.log.info(
+      { d1, d2, G, N, concentration_cells_per_ml, throughput: result.throughput_cells_per_min },
+      "Throughput estimate complete",
+    );
+    res.json(result);
+  } catch (err) {
+    req.log.error({ err }, "Throughput estimation failed");
+    res.status(400).json({ error: "Throughput estimation failed" });
   }
 });
 

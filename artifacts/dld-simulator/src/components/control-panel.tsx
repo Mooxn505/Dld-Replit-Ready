@@ -27,6 +27,11 @@ interface ControlPanelProps {
   onSweep: () => void;
   onDcCurves: () => void;
   onFlowAnalysis: () => void;
+  onThroughput: () => void;
+  concentration: number;
+  setConcentration: (val: number) => void;
+  sampleVolume: number;
+  setSampleVolume: (val: number) => void;
   isLoading: boolean;
 }
 
@@ -48,6 +53,11 @@ export function ControlPanel({
   onSweep,
   onDcCurves,
   onFlowAnalysis,
+  onThroughput,
+  concentration,
+  setConcentration,
+  sampleVolume,
+  setSampleVolume,
   isLoading
 }: ControlPanelProps) {
   
@@ -264,6 +274,55 @@ export function ControlPanel({
           >
             <Waves className="w-3 h-3 mr-1.5 text-[#1D9E75]" />
             Flow Analysis
+          </Button>
+        </div>
+
+        {/* Throughput Estimator */}
+        <div className="border-t border-border/30 pt-3 space-y-2.5">
+          <div className="flex items-center gap-1.5 mb-1">
+            <svg className="w-3 h-3 text-[#1D9E75] shrink-0" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
+            </svg>
+            <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">Throughput Estimator</span>
+          </div>
+          <div>
+            <label className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider block mb-1">
+              Concentration (cells/mL)
+            </label>
+            <input
+              type="number"
+              value={concentration}
+              onChange={(e) => setConcentration(Number(e.target.value))}
+              step="1000000"
+              min="1000"
+              className="w-full bg-muted/30 border border-border/50 rounded px-2 py-1 text-[11px] font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
+              placeholder="e.g. 5000000"
+            />
+          </div>
+          <div>
+            <label className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider block mb-1">
+              Sample Volume (mL)
+            </label>
+            <input
+              type="number"
+              value={sampleVolume}
+              onChange={(e) => setSampleVolume(Number(e.target.value))}
+              step="0.5"
+              min="0.01"
+              className="w-full bg-muted/30 border border-border/50 rounded px-2 py-1 text-[11px] font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
+              placeholder="1.0"
+            />
+          </div>
+          <Button
+            variant="outline"
+            onClick={onThroughput}
+            disabled={isLoading || !concentration || !sampleVolume}
+            className="w-full font-mono text-[10px] uppercase tracking-wider h-8 border-[#1D9E75]/40 text-[#1D9E75] bg-[#1D9E75]/5 hover:bg-[#1D9E75]/15"
+          >
+            <svg className="w-3 h-3 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
+            </svg>
+            Estimate Throughput
           </Button>
         </div>
       </div>

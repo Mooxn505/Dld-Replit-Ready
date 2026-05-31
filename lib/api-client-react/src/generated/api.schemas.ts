@@ -140,6 +140,48 @@ export interface FlowAnalysisResponse {
   channel_width_um: number;
 }
 
+export interface DldThroughputInput {
+  /** Diameter of particle 1 (µm) */
+  d1: number;
+  /** Diameter of particle 2 (µm) */
+  d2: number;
+  /** Pillar gap (µm) */
+  G: number;
+  /** Array period */
+  N: number;
+  /** Cell concentration in sample (cells/mL) */
+  concentration_cells_per_ml: number;
+  /** Total sample volume to process (mL, default 1.0) */
+  sample_volume_ml?: number;
+  /** Channel height in µm (default 50) */
+  channel_height_um?: number;
+  /** Channel width in µm (default 500) */
+  channel_width_um?: number;
+}
+
+export interface ThroughputResponse {
+  /** Maximum optimal flow rate (µL/min) */
+  optimal_q_max_ul_min: number;
+  /** Cells processed per minute at optimal Q_max */
+  throughput_cells_per_min: number;
+  /** Cells processed per hour at optimal Q_max */
+  throughput_cells_per_hour: number;
+  /** Minutes to process the full sample at optimal Q_max */
+  processing_time_min: number;
+  /** Total cells in the input sample */
+  total_cells_in_sample: number;
+  /** Estimated recovered (correctly sorted) cells */
+  recovered_cells: number;
+  /** Sorting efficiency (%) at optimal flow rate */
+  efficiency_at_optimal: number;
+  concentration_cells_per_ml: number;
+  sample_volume_ml: number;
+  /** Critical diameter (µm) */
+  Dc: number;
+  channel_height_um: number;
+  channel_width_um: number;
+}
+
 export interface DldPreset {
   id: string;
   name: string;
