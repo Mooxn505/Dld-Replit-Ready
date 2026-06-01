@@ -34,6 +34,8 @@ import type {
   ErrorResponse,
   FlowAnalysisResponse,
   HealthStatus,
+  OptimizeInput,
+  OptimizeResponse,
   SweepResponse,
   ThroughputResponse
 } from './api.schemas';
@@ -421,6 +423,79 @@ export const useAnalyzeFlowRate = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getAnalyzeFlowRateMutationOptions(options));
+    }
+
+export const getOptimizeGeometryUrl = () => {
+
+
+
+
+  return `/api/dld/optimize`
+}
+
+/**
+ * Sweeps G and N over a configurable grid and scores each combination by the chosen objective (efficiency, Q_max, or Dc closest to a target). Returns the best (G, N) pair, the metric value, and the full grid as a value matrix for heatmap display.
+
+ * @summary Optimize DLD geometry
+ */
+export const optimizeGeometry = async (optimizeInput: OptimizeInput, options?: RequestInit): Promise<OptimizeResponse> => {
+
+  return customFetch<OptimizeResponse>(getOptimizeGeometryUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      optimizeInput,)
+  }
+);}
+
+
+
+
+export const getOptimizeGeometryMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof optimizeGeometry>>, TError,{data: BodyType<OptimizeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof optimizeGeometry>>, TError,{data: BodyType<OptimizeInput>}, TContext> => {
+
+const mutationKey = ['optimizeGeometry'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof optimizeGeometry>>, {data: BodyType<OptimizeInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  optimizeGeometry(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type OptimizeGeometryMutationResult = NonNullable<Awaited<ReturnType<typeof optimizeGeometry>>>
+    export type OptimizeGeometryMutationBody = BodyType<OptimizeInput>
+    export type OptimizeGeometryMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Optimize DLD geometry
+ */
+export const useOptimizeGeometry = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof optimizeGeometry>>, TError,{data: BodyType<OptimizeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof optimizeGeometry>>,
+        TError,
+        {data: BodyType<OptimizeInput>},
+        TContext
+      > => {
+      return useMutation(getOptimizeGeometryMutationOptions(options));
     }
 
 export const getEstimateThroughputUrl = () => {

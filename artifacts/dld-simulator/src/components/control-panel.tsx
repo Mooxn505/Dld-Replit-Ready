@@ -10,6 +10,7 @@ import type { CellEntry, AnalyzeResponse, FlowAnalysisResponse, ThroughputRespon
 import { MoldExportPanel } from "./mold-export-panel";
 import { ThroughputPanel } from "./throughput-panel";
 import { DataExportPanel } from "./data-export-panel";
+import { OptimizePanel } from "./optimize-panel";
 
 interface ControlPanelProps {
   cells?: CellEntry[];
@@ -30,6 +31,7 @@ interface ControlPanelProps {
   onDcCurves: () => void;
   onFlowAnalysis: () => void;
   onThroughputResult: (data: ThroughputResponse) => void;
+  onOptimizeApply: () => void;
   onPinReference: () => void;
   onClearReference: () => void;
   refLabel: string | null;
@@ -59,6 +61,7 @@ export function ControlPanel({
   onDcCurves,
   onFlowAnalysis,
   onThroughputResult,
+  onOptimizeApply,
   onPinReference,
   onClearReference,
   refLabel,
@@ -243,6 +246,14 @@ export function ControlPanel({
         currentN={N}
         currentLabel1={label1}
         currentLabel2={label2}
+      />
+
+      <OptimizePanel
+        d1={d1}
+        d2={d2}
+        setG={setG}
+        setN={setN}
+        onAnalyze={onOptimizeApply}
       />
 
       <ThroughputPanel

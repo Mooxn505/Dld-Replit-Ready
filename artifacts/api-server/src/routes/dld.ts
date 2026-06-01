@@ -6,6 +6,7 @@ import {
   ExportDxfBody,
   AnalyzeFlowRateBody,
   EstimateThroughputBody,
+  OptimizeGeometryBody,
 } from "@workspace/api-zod";
 import {
   CELL_LIBRARY,
@@ -17,7 +18,7 @@ import {
   criticalDiameter,
 } from "../lib/dld";
 import { generateDxf } from "../lib/dxf";
-import { analyzeFlowRate, computeThroughput } from "../lib/flow";
+import { analyzeFlowRate, computeThroughput, computeOptimize } from "../lib/flow";
 
 const router: IRouter = Router();
 
@@ -219,6 +220,33 @@ router.post("/dld/dc-curve", async (req, res): Promise<void> => {
   } catch (err) {
     req.log.error({ err }, "Dc curve computation failed");
     res.status(400).json({ error: "Dc curve computation failed" });
+  }
+});
+
+router.post("/dld/optimize", async (req, res): Promise<void> => {
+  const parsed = OptimizeGeometryBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const {
+    d1, d2, objective,
+    dc_target, G_min, G_max, G_step, N_min, N_max,
+    channel_height_um, channel_width_um,
+  } = parsed.data;
+
+  try {
+    const result = computeOptimize(
+      d1, d2, objective,
+      dc_target, G_min, G_max, G_step, N_min, N_max,
+      channel_height_um, channel_width_um,
+    );
+    req.log.info({ d1, d2, objective, best_G: result.best_G, best_N: result.best_N }, "Geometry optimization complete");
+    res.json(result);
+  } catch (err) {
+    req.log.error({ err }, "Geometry optimization failed");
+    res.status(400).json({ error: "Optimization failed" });
   }
 });
 

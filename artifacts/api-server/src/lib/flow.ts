@@ -134,6 +134,88 @@ export function computeThroughput(
   };
 }
 
+export interface OptimizePoint {
+  G: number;
+  N: number;
+  value: number;
+}
+
+export interface OptimizeResult {
+  objective: string;
+  best_G: number;
+  best_N: number;
+  best_value: number;
+  metric_label: string;
+  points: OptimizePoint[];
+  G_vals: number[];
+  N_vals: number[];
+  value_matrix: number[][];
+}
+
+export function computeOptimize(
+  d1: number,
+  d2: number,
+  objective: "efficiency" | "q_max" | "dc_target",
+  dcTarget = 10,
+  gMin = 5,
+  gMax = 60,
+  gStep = 5,
+  nMin = 2,
+  nMax = 15,
+  channelHeightUm = 50,
+  channelWidthUm = 500,
+): OptimizeResult {
+  const G_vals: number[] = [];
+  for (let g = gMin; g <= gMax; g += gStep) G_vals.push(g);
+  const N_vals: number[] = [];
+  for (let n = nMin; n <= nMax; n++) N_vals.push(n);
+
+  const score = (G: number, N: number): number => {
+    const geo = sortingEfficiency(d1, d2, G, N);
+    if (objective === "efficiency") return geo.efficiency;
+    if (objective === "dc_target") return -Math.abs(geo.Dc - dcTarget);
+    // q_max: analytic — velocity at Re = RE_CRIT, then Q = v × w × h
+    // Re = v_mm_s × G_um × 1e-3  →  v_crit = RE_CRIT / (G * 1e-3)
+    const vCrit = RE_CRIT / (G * 1e-3); // mm/s
+    const wMm = channelWidthUm / 1000;
+    const hMm = channelHeightUm / 1000;
+    return vCrit * wMm * hMm * 60 / 1000; // µL/min
+  };
+
+  let bestG = G_vals[0], bestN = N_vals[0], bestVal = -Infinity;
+  const points: OptimizePoint[] = [];
+  const value_matrix: number[][] = [];
+
+  for (const N of N_vals) {
+    const row: number[] = [];
+    for (const G of G_vals) {
+      const val = Math.round(score(G, N) * 1000) / 1000;
+      points.push({ G, N, value: val });
+      row.push(val);
+      if (val > bestVal) { bestVal = val; bestG = G; bestN = N; }
+    }
+    value_matrix.push(row);
+  }
+
+  const metricLabels: Record<string, string> = {
+    efficiency: "Sorting efficiency (%)",
+    q_max: "Q_max (µL/min)",
+    dc_target: `|Dc − ${dcTarget} µm|`,
+  };
+
+  return {
+    objective,
+    best_G: bestG,
+    best_N: bestN,
+    best_value: Math.round(bestVal * 1000) / 1000,
+    metric_label: metricLabels[objective] ?? objective,
+    points,
+    G_vals,
+    N_vals,
+    value_matrix,
+  };
+}
+
 export function analyzeFlowRate(
   d1: number,
   d2: number,

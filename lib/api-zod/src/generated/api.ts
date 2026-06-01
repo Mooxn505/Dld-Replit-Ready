@@ -126,6 +126,42 @@ export const AnalyzeFlowRateResponse = zod.object({
 
 
 /**
+ * Sweeps G and N over a configurable grid and scores each combination by the chosen objective (efficiency, Q_max, or Dc closest to a target). Returns the best (G, N) pair, the metric value, and the full grid as a value matrix for heatmap display.
+
+ * @summary Optimize DLD geometry
+ */
+export const OptimizeGeometryBody = zod.object({
+  "d1": zod.number().describe('Diameter of particle 1 (µm)'),
+  "d2": zod.number().describe('Diameter of particle 2 (µm)'),
+  "objective": zod.enum(['efficiency', 'q_max', 'dc_target']).describe('Optimization objective: efficiency | q_max | dc_target'),
+  "dc_target": zod.number().optional().describe('Target critical diameter for dc_target objective (µm)'),
+  "G_min": zod.number().optional().describe('Minimum pillar gap to sweep (µm, default 5)'),
+  "G_max": zod.number().optional().describe('Maximum pillar gap to sweep (µm, default 60)'),
+  "G_step": zod.number().optional().describe('Step size for pillar gap sweep (µm, default 5)'),
+  "N_min": zod.number().optional().describe('Minimum array period to sweep (default 2)'),
+  "N_max": zod.number().optional().describe('Maximum array period to sweep (default 15)'),
+  "channel_height_um": zod.number().optional().describe('Channel height in µm (default 50)'),
+  "channel_width_um": zod.number().optional().describe('Channel width in µm (default 500)')
+})
+
+export const OptimizeGeometryResponse = zod.object({
+  "objective": zod.string(),
+  "best_G": zod.number(),
+  "best_N": zod.number(),
+  "best_value": zod.number(),
+  "metric_label": zod.string(),
+  "points": zod.array(zod.object({
+  "G": zod.number(),
+  "N": zod.number(),
+  "value": zod.number()
+})),
+  "G_vals": zod.array(zod.number()),
+  "N_vals": zod.array(zod.number()),
+  "value_matrix": zod.array(zod.array(zod.number()))
+})
+
+
+/**
  * Given chip geometry and sample parameters, computes cells-per-minute at the optimal flow rate, total processing time, and expected cell recovery. Internally runs the same Re-degradation flow model.
 
  * @summary Estimate cell throughput

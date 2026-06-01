@@ -110,6 +110,7 @@ export default function Home() {
         onDcCurves={runDcCurves}
         onFlowAnalysis={runFlowAnalysis}
         onThroughputResult={setThroughputData}
+        onOptimizeApply={() => runAnalysis()}
         onPinReference={pinReference}
         onClearReference={clearReference}
         refLabel={refLabel}

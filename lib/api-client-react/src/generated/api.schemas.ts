@@ -230,3 +230,58 @@ export interface DcCurveResponse {
   curves: DcCurveSeries[];
 }
 
+/**
+ * Optimization objective: efficiency | q_max | dc_target
+ */
+export type OptimizeInputObjective = typeof OptimizeInputObjective[keyof typeof OptimizeInputObjective];
+
+
+export const OptimizeInputObjective = {
+  efficiency: 'efficiency',
+  q_max: 'q_max',
+  dc_target: 'dc_target',
+} as const;
+
+export interface OptimizeInput {
+  /** Diameter of particle 1 (µm) */
+  d1: number;
+  /** Diameter of particle 2 (µm) */
+  d2: number;
+  /** Optimization objective: efficiency | q_max | dc_target */
+  objective: OptimizeInputObjective;
+  /** Target critical diameter for dc_target objective (µm) */
+  dc_target?: number;
+  /** Minimum pillar gap to sweep (µm, default 5) */
+  G_min?: number;
+  /** Maximum pillar gap to sweep (µm, default 60) */
+  G_max?: number;
+  /** Step size for pillar gap sweep (µm, default 5) */
+  G_step?: number;
+  /** Minimum array period to sweep (default 2) */
+  N_min?: number;
+  /** Maximum array period to sweep (default 15) */
+  N_max?: number;
+  /** Channel height in µm (default 50) */
+  channel_height_um?: number;
+  /** Channel width in µm (default 500) */
+  channel_width_um?: number;
+}
+
+export interface OptimizePoint {
+  G: number;
+  N: number;
+  value: number;
+}
+
+export interface OptimizeResponse {
+  objective: string;
+  best_G: number;
+  best_N: number;
+  best_value: number;
+  metric_label: string;
+  points: OptimizePoint[];
+  G_vals: number[];
+  N_vals: number[];
+  value_matrix: number[][];
+}
+

@@ -124,6 +124,36 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /dld/optimize:
+    post:
+      operationId: optimizeGeometry
+      tags: [dld]
+      summary: Optimize DLD geometry
+      description: >
+        Sweeps G and N over a configurable grid and scores each combination
+        by the chosen objective (efficiency, Q_max, or Dc closest to a target).
+        Returns the best (G, N) pair, the metric value, and the full grid as
+        a value matrix for heatmap display.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OptimizeInput"
+      responses:
+        "200":
+          description: Optimization result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OptimizeResponse"
+        "400":
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /dld/throughput:
     post:
       operationId: estimateThroughput
@@ -634,3 +664,86 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/DcCurveSeries"
+
+    OptimizeInput:
+      type: object
+      required: [d1, d2, objective]
+      properties:
+        d1:
+          type: number
+          description: Diameter of particle 1 (µm)
+        d2:
+          type: number
+          description: Diameter of particle 2 (µm)
+        objective:
+          type: string
+          enum: [efficiency, q_max, dc_target]
+          description: "Optimization objective: efficiency | q_max | dc_target"
+        dc_target:
+          type: number
+          description: Target critical diameter for dc_target objective (µm)
+        G_min:
+          type: number
+          description: Minimum pillar gap to sweep (µm, default 5)
+        G_max:
+          type: number
+          description: Maximum pillar gap to sweep (µm, default 60)
+        G_step:
+          type: number
+          description: Step size for pillar gap sweep (µm, default 5)
+        N_min:
+          type: integer
+          description: Minimum array period to sweep (default 2)
+        N_max:
+          type: integer
+          description: Maximum array period to sweep (default 15)
+        channel_height_um:
+          type: number
+          description: Channel height in µm (default 50)
+        channel_width_um:
+          type: number
+          description: Channel width in µm (default 500)
+
+    OptimizePoint:
+      type: object
+      required: [G, N, value]
+      properties:
+        G:
+          type: number
+        N:
+          type: integer
+        value:
+          type: number
+
+    OptimizeResponse:
+      type: object
+      required: [objective, best_G, best_N, best_value, metric_label, points, G_vals, N_vals, value_matrix]
+      properties:
+        objective:
+          type: string
+        best_G:
+          type: number
+        best_N:
+          type: integer
+        best_value:
+          type: number
+        metric_label:
+          type: string
+        points:
+          type: array
+          items:
+            $ref: "#/components/schemas/OptimizePoint"
+        G_vals:
+          type: array
+          items:
+            type: number
+        N_vals:
+          type: array
+          items:
+            type: integer
+        value_matrix:
+          type: array
+          items:
+            type: array
+            items:
+              type: number
