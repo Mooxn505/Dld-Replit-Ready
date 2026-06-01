@@ -230,6 +230,59 @@ export interface DcCurveResponse {
   curves: DcCurveSeries[];
 }
 
+export interface CascadeStageInput {
+  /** Pillar gap (µm) */
+  G: number;
+  /** Array period */
+  N: number;
+  /** Channel height in µm (default 50) */
+  channel_height_um?: number;
+  /** Channel width in µm (default 500) */
+  channel_width_um?: number;
+}
+
+export interface CascadeInput {
+  /** Diameter of particle 1 (µm) */
+  d1: number;
+  /** Diameter of particle 2 (µm) */
+  d2: number;
+  stage1: CascadeStageInput;
+  stage2: CascadeStageInput;
+}
+
+export interface CascadeStageResult {
+  G: number;
+  N: number;
+  Dc: number;
+  d1_mode: string;
+  d2_mode: string;
+  ideal_efficiency: number;
+  q_max_ul_min: number;
+  optimal_v_max_mm_s: number;
+  separated: boolean;
+}
+
+export interface CascadeSummary {
+  /** Absolute difference between Stage 1 and Stage 2 Dc values */
+  dc_window_um: number;
+  /** Combined sorting efficiency across both stages */
+  overall_efficiency: number;
+  /** Min Q_max across stages — limits total throughput */
+  bottleneck_q_max_ul_min: number;
+  /** True if at least one stage separates d1 from d2 */
+  separation_achieved: boolean;
+  /** True if both stages separate d1 from d2 in the same direction */
+  stages_agree: boolean;
+}
+
+export interface CascadeResponse {
+  d1: number;
+  d2: number;
+  stage1: CascadeStageResult;
+  stage2: CascadeStageResult;
+  summary: CascadeSummary;
+}
+
 /**
  * Optimization objective: efficiency | q_max | dc_target
  */

@@ -7,6 +7,7 @@ import {
   AnalyzeFlowRateBody,
   EstimateThroughputBody,
   OptimizeGeometryBody,
+  AnalyzeCascadeBody,
 } from "@workspace/api-zod";
 import {
   CELL_LIBRARY,
@@ -18,7 +19,7 @@ import {
   criticalDiameter,
 } from "../lib/dld";
 import { generateDxf } from "../lib/dxf";
-import { analyzeFlowRate, computeThroughput, computeOptimize } from "../lib/flow";
+import { analyzeFlowRate, computeThroughput, computeOptimize, computeCascade } from "../lib/flow";
 
 const router: IRouter = Router();
 
@@ -247,6 +248,34 @@ router.post("/dld/optimize", async (req, res): Promise<void> => {
   } catch (err) {
     req.log.error({ err }, "Geometry optimization failed");
     res.status(400).json({ error: "Optimization failed" });
+  }
+});
+
+router.post("/dld/cascade", async (req, res): Promise<void> => {
+  const parsed = AnalyzeCascadeBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { d1, d2, stage1, stage2 } = parsed.data;
+
+  try {
+    const result = computeCascade(
+      d1, d2,
+      stage1.G, stage1.N,
+      stage2.G, stage2.N,
+      stage1.channel_height_um, stage1.channel_width_um,
+      stage2.channel_height_um, stage2.channel_width_um,
+    );
+    req.log.info(
+      { d1, d2, g1: stage1.G, n1: stage1.N, g2: stage2.G, n2: stage2.N, eff: result.summary.overall_efficiency },
+      "Cascade analysis complete",
+    );
+    res.json(result);
+  } catch (err) {
+    req.log.error({ err }, "Cascade analysis failed");
+    res.status(400).json({ error: "Cascade analysis failed" });
   }
 });
 

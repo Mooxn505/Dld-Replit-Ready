@@ -11,6 +11,7 @@ import { MoldExportPanel } from "./mold-export-panel";
 import { ThroughputPanel } from "./throughput-panel";
 import { DataExportPanel } from "./data-export-panel";
 import { OptimizePanel } from "./optimize-panel";
+import { CascadePanel } from "./cascade-panel";
 
 interface ControlPanelProps {
   cells?: CellEntry[];
@@ -32,6 +33,7 @@ interface ControlPanelProps {
   onFlowAnalysis: () => void;
   onThroughputResult: (data: ThroughputResponse) => void;
   onOptimizeApply: () => void;
+  onCascadeApply: () => void;
   onPinReference: () => void;
   onClearReference: () => void;
   refLabel: string | null;
@@ -62,6 +64,7 @@ export function ControlPanel({
   onFlowAnalysis,
   onThroughputResult,
   onOptimizeApply,
+  onCascadeApply,
   onPinReference,
   onClearReference,
   refLabel,
@@ -254,6 +257,16 @@ export function ControlPanel({
         setG={setG}
         setN={setN}
         onAnalyze={onOptimizeApply}
+      />
+
+      <CascadePanel
+        d1={d1}
+        d2={d2}
+        currentG={G}
+        currentN={N}
+        setG={setG}
+        setN={setN}
+        onApply={onCascadeApply}
       />
 
       <ThroughputPanel

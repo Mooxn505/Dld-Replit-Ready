@@ -124,6 +124,35 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /dld/cascade:
+    post:
+      operationId: analyzeCascade
+      tags: [dld]
+      summary: Two-stage cascade DLD analysis
+      description: >
+        Models two DLD chips connected in series. Computes per-stage Dc,
+        efficiency, and Q_max, plus combined metrics: overall efficiency,
+        bottleneck flow rate, and Dc window between the two stages.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CascadeInput"
+      responses:
+        "200":
+          description: Cascade analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CascadeResponse"
+        "400":
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /dld/optimize:
     post:
       operationId: optimizeGeometry
@@ -664,6 +693,96 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/DcCurveSeries"
+
+    CascadeStageInput:
+      type: object
+      required: [G, N]
+      properties:
+        G:
+          type: number
+          description: Pillar gap (µm)
+        N:
+          type: integer
+          description: Array period
+        channel_height_um:
+          type: number
+          description: Channel height in µm (default 50)
+        channel_width_um:
+          type: number
+          description: Channel width in µm (default 500)
+
+    CascadeInput:
+      type: object
+      required: [d1, d2, stage1, stage2]
+      properties:
+        d1:
+          type: number
+          description: Diameter of particle 1 (µm)
+        d2:
+          type: number
+          description: Diameter of particle 2 (µm)
+        stage1:
+          $ref: "#/components/schemas/CascadeStageInput"
+        stage2:
+          $ref: "#/components/schemas/CascadeStageInput"
+
+    CascadeStageResult:
+      type: object
+      required: [G, N, Dc, d1_mode, d2_mode, ideal_efficiency, q_max_ul_min, optimal_v_max_mm_s, separated]
+      properties:
+        G:
+          type: number
+        N:
+          type: integer
+        Dc:
+          type: number
+        d1_mode:
+          type: string
+        d2_mode:
+          type: string
+        ideal_efficiency:
+          type: number
+        q_max_ul_min:
+          type: number
+        optimal_v_max_mm_s:
+          type: number
+        separated:
+          type: boolean
+
+    CascadeSummary:
+      type: object
+      required: [dc_window_um, overall_efficiency, bottleneck_q_max_ul_min, separation_achieved, stages_agree]
+      properties:
+        dc_window_um:
+          type: number
+          description: Absolute difference between Stage 1 and Stage 2 Dc values
+        overall_efficiency:
+          type: number
+          description: Combined sorting efficiency across both stages
+        bottleneck_q_max_ul_min:
+          type: number
+          description: Min Q_max across stages — limits total throughput
+        separation_achieved:
+          type: boolean
+          description: True if at least one stage separates d1 from d2
+        stages_agree:
+          type: boolean
+          description: True if both stages separate d1 from d2 in the same direction
+
+    CascadeResponse:
+      type: object
+      required: [d1, d2, stage1, stage2, summary]
+      properties:
+        d1:
+          type: number
+        d2:
+          type: number
+        stage1:
+          $ref: "#/components/schemas/CascadeStageResult"
+        stage2:
+          $ref: "#/components/schemas/CascadeStageResult"
+        summary:
+          $ref: "#/components/schemas/CascadeSummary"
 
     OptimizeInput:
       type: object

@@ -7,6 +7,11 @@
  */
 
 export * from './analyzeResponse';
+export * from './cascadeInput';
+export * from './cascadeResponse';
+export * from './cascadeStageInput';
+export * from './cascadeStageResult';
+export * from './cascadeSummary';
 export * from './cellEntry';
 export * from './dcCurveInput';
 export * from './dcCurveResponse';

@@ -21,6 +21,8 @@ import type {
 
 import type {
   AnalyzeResponse,
+  CascadeInput,
+  CascadeResponse,
   CellEntry,
   DcCurveInput,
   DcCurveResponse,
@@ -423,6 +425,79 @@ export const useAnalyzeFlowRate = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getAnalyzeFlowRateMutationOptions(options));
+    }
+
+export const getAnalyzeCascadeUrl = () => {
+
+
+
+
+  return `/api/dld/cascade`
+}
+
+/**
+ * Models two DLD chips connected in series. Computes per-stage Dc, efficiency, and Q_max, plus combined metrics: overall efficiency, bottleneck flow rate, and Dc window between the two stages.
+
+ * @summary Two-stage cascade DLD analysis
+ */
+export const analyzeCascade = async (cascadeInput: CascadeInput, options?: RequestInit): Promise<CascadeResponse> => {
+
+  return customFetch<CascadeResponse>(getAnalyzeCascadeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      cascadeInput,)
+  }
+);}
+
+
+
+
+export const getAnalyzeCascadeMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeCascade>>, TError,{data: BodyType<CascadeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof analyzeCascade>>, TError,{data: BodyType<CascadeInput>}, TContext> => {
+
+const mutationKey = ['analyzeCascade'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof analyzeCascade>>, {data: BodyType<CascadeInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  analyzeCascade(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AnalyzeCascadeMutationResult = NonNullable<Awaited<ReturnType<typeof analyzeCascade>>>
+    export type AnalyzeCascadeMutationBody = BodyType<CascadeInput>
+    export type AnalyzeCascadeMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Two-stage cascade DLD analysis
+ */
+export const useAnalyzeCascade = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeCascade>>, TError,{data: BodyType<CascadeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof analyzeCascade>>,
+        TError,
+        {data: BodyType<CascadeInput>},
+        TContext
+      > => {
+      return useMutation(getAnalyzeCascadeMutationOptions(options));
     }
 
 export const getOptimizeGeometryUrl = () => {

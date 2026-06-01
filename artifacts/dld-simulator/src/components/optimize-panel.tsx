@@ -88,7 +88,7 @@ function ValueHeatmap({ data }: { data: OptimizeResponse }) {
         })}
       </div>
       <div className="flex mt-1 ml-5 gap-px">
-        {G_vals.filter((_, i) => i % 2 === 0).map((g) => (
+        {G_vals.filter((_: number, i: number) => i % 2 === 0).map((g: number) => (
           <div key={g} className="flex-1 text-center text-[7px] font-mono text-muted-foreground">{g}</div>
         ))}
       </div>

@@ -126,6 +126,63 @@ export const AnalyzeFlowRateResponse = zod.object({
 
 
 /**
+ * Models two DLD chips connected in series. Computes per-stage Dc, efficiency, and Q_max, plus combined metrics: overall efficiency, bottleneck flow rate, and Dc window between the two stages.
+
+ * @summary Two-stage cascade DLD analysis
+ */
+export const AnalyzeCascadeBody = zod.object({
+  "d1": zod.number().describe('Diameter of particle 1 (µm)'),
+  "d2": zod.number().describe('Diameter of particle 2 (µm)'),
+  "stage1": zod.object({
+  "G": zod.number().describe('Pillar gap (µm)'),
+  "N": zod.number().describe('Array period'),
+  "channel_height_um": zod.number().optional().describe('Channel height in µm (default 50)'),
+  "channel_width_um": zod.number().optional().describe('Channel width in µm (default 500)')
+}),
+  "stage2": zod.object({
+  "G": zod.number().describe('Pillar gap (µm)'),
+  "N": zod.number().describe('Array period'),
+  "channel_height_um": zod.number().optional().describe('Channel height in µm (default 50)'),
+  "channel_width_um": zod.number().optional().describe('Channel width in µm (default 500)')
+})
+})
+
+export const AnalyzeCascadeResponse = zod.object({
+  "d1": zod.number(),
+  "d2": zod.number(),
+  "stage1": zod.object({
+  "G": zod.number(),
+  "N": zod.number(),
+  "Dc": zod.number(),
+  "d1_mode": zod.string(),
+  "d2_mode": zod.string(),
+  "ideal_efficiency": zod.number(),
+  "q_max_ul_min": zod.number(),
+  "optimal_v_max_mm_s": zod.number(),
+  "separated": zod.boolean()
+}),
+  "stage2": zod.object({
+  "G": zod.number(),
+  "N": zod.number(),
+  "Dc": zod.number(),
+  "d1_mode": zod.string(),
+  "d2_mode": zod.string(),
+  "ideal_efficiency": zod.number(),
+  "q_max_ul_min": zod.number(),
+  "optimal_v_max_mm_s": zod.number(),
+  "separated": zod.boolean()
+}),
+  "summary": zod.object({
+  "dc_window_um": zod.number().describe('Absolute difference between Stage 1 and Stage 2 Dc values'),
+  "overall_efficiency": zod.number().describe('Combined sorting efficiency across both stages'),
+  "bottleneck_q_max_ul_min": zod.number().describe('Min Q_max across stages — limits total throughput'),
+  "separation_achieved": zod.boolean().describe('True if at least one stage separates d1 from d2'),
+  "stages_agree": zod.boolean().describe('True if both stages separate d1 from d2 in the same direction')
+})
+})
+
+
+/**
  * Sweeps G and N over a configurable grid and scores each combination by the chosen objective (efficiency, Q_max, or Dc closest to a target). Returns the best (G, N) pair, the metric value, and the full grid as a value matrix for heatmap display.
 
  * @summary Optimize DLD geometry
