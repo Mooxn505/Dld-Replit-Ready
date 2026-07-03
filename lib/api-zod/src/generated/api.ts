@@ -183,6 +183,84 @@ export const AnalyzeCascadeResponse = zod.object({
 
 
 /**
+ * Given a mixed sample with two particle populations at a known composition ratio, models probabilistic (non-binary) DLD separation using a sigmoid partition function around Dc, then computes output purity and recovery yield after one or two chained stages.
+
+ * @summary Sample purity & recovery simulation
+ */
+export const AnalyzePurityBody = zod.object({
+  "d1": zod.number().describe('Diameter of particle 1 (µm)'),
+  "d2": zod.number().describe('Diameter of particle 2 (µm)'),
+  "target_fraction_pct": zod.number().describe('Percentage of the sample that is the target particle (0-100)'),
+  "target": zod.enum(['d1', 'd2']).describe('Which particle population is the target to enrich\/recover'),
+  "stage1": zod.object({
+  "G": zod.number(),
+  "N": zod.number()
+}),
+  "stage2": zod.object({
+  "G": zod.number(),
+  "N": zod.number()
+}).optional().describe('Optional second stage — output of stage 1\'s chosen outlet feeds stage 2')
+})
+
+export const AnalyzePurityResponse = zod.object({
+  "d1": zod.number(),
+  "d2": zod.number(),
+  "target": zod.string(),
+  "stage1": zod.object({
+  "G": zod.number(),
+  "N": zod.number(),
+  "Dc": zod.number(),
+  "p_bump_d1": zod.number(),
+  "p_bump_d2": zod.number(),
+  "outlet_bump": zod.object({
+  "name": zod.string(),
+  "count_d1": zod.number(),
+  "count_d2": zod.number(),
+  "total": zod.number(),
+  "purity_target_pct": zod.number()
+}),
+  "outlet_zigzag": zod.object({
+  "name": zod.string(),
+  "count_d1": zod.number(),
+  "count_d2": zod.number(),
+  "total": zod.number(),
+  "purity_target_pct": zod.number()
+}),
+  "chosen_outlet": zod.enum(['bump', 'zigzag'])
+}),
+  "stage2": zod.object({
+  "G": zod.number(),
+  "N": zod.number(),
+  "Dc": zod.number(),
+  "p_bump_d1": zod.number(),
+  "p_bump_d2": zod.number(),
+  "outlet_bump": zod.object({
+  "name": zod.string(),
+  "count_d1": zod.number(),
+  "count_d2": zod.number(),
+  "total": zod.number(),
+  "purity_target_pct": zod.number()
+}),
+  "outlet_zigzag": zod.object({
+  "name": zod.string(),
+  "count_d1": zod.number(),
+  "count_d2": zod.number(),
+  "total": zod.number(),
+  "purity_target_pct": zod.number()
+}),
+  "chosen_outlet": zod.enum(['bump', 'zigzag'])
+}).optional(),
+  "summary": zod.object({
+  "initial_purity_pct": zod.number(),
+  "final_purity_pct": zod.number(),
+  "recovery_pct": zod.number(),
+  "enrichment_factor": zod.number(),
+  "stages_used": zod.number()
+})
+})
+
+
+/**
  * Sweeps G and N over a configurable grid and scores each combination by the chosen objective (efficiency, Q_max, or Dc closest to a target). Returns the best (G, N) pair, the metric value, and the full grid as a value matrix for heatmap display.
 
  * @summary Optimize DLD geometry

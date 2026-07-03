@@ -8,6 +8,7 @@ import {
   EstimateThroughputBody,
   OptimizeGeometryBody,
   AnalyzeCascadeBody,
+  AnalyzePurityBody,
 } from "@workspace/api-zod";
 import {
   CELL_LIBRARY,
@@ -19,7 +20,7 @@ import {
   criticalDiameter,
 } from "../lib/dld";
 import { generateDxf } from "../lib/dxf";
-import { analyzeFlowRate, computeThroughput, computeOptimize, computeCascade } from "../lib/flow";
+import { analyzeFlowRate, computeThroughput, computeOptimize, computeCascade, computePurity } from "../lib/flow";
 
 const router: IRouter = Router();
 
@@ -276,6 +277,32 @@ router.post("/dld/cascade", async (req, res): Promise<void> => {
   } catch (err) {
     req.log.error({ err }, "Cascade analysis failed");
     res.status(400).json({ error: "Cascade analysis failed" });
+  }
+});
+
+router.post("/dld/purity", async (req, res): Promise<void> => {
+  const parsed = AnalyzePurityBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { d1, d2, target_fraction_pct, target, stage1, stage2 } = parsed.data;
+
+  try {
+    const result = computePurity(
+      d1, d2, target_fraction_pct, target as "d1" | "d2",
+      stage1.G, stage1.N,
+      stage2?.G, stage2?.N,
+    );
+    req.log.info(
+      { d1, d2, target, final_purity: result.summary.final_purity_pct, recovery: result.summary.recovery_pct },
+      "Purity analysis complete",
+    );
+    res.json(result);
+  } catch (err) {
+    req.log.error({ err }, "Purity analysis failed");
+    res.status(400).json({ error: "Purity analysis failed" });
   }
 });
 

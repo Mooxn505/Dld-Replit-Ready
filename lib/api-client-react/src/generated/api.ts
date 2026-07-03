@@ -38,6 +38,8 @@ import type {
   HealthStatus,
   OptimizeInput,
   OptimizeResponse,
+  PurityInput,
+  PurityResponse,
   SweepResponse,
   ThroughputResponse
 } from './api.schemas';
@@ -498,6 +500,79 @@ export const useAnalyzeCascade = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getAnalyzeCascadeMutationOptions(options));
+    }
+
+export const getAnalyzePurityUrl = () => {
+
+
+
+
+  return `/api/dld/purity`
+}
+
+/**
+ * Given a mixed sample with two particle populations at a known composition ratio, models probabilistic (non-binary) DLD separation using a sigmoid partition function around Dc, then computes output purity and recovery yield after one or two chained stages.
+
+ * @summary Sample purity & recovery simulation
+ */
+export const analyzePurity = async (purityInput: PurityInput, options?: RequestInit): Promise<PurityResponse> => {
+
+  return customFetch<PurityResponse>(getAnalyzePurityUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      purityInput,)
+  }
+);}
+
+
+
+
+export const getAnalyzePurityMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzePurity>>, TError,{data: BodyType<PurityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof analyzePurity>>, TError,{data: BodyType<PurityInput>}, TContext> => {
+
+const mutationKey = ['analyzePurity'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof analyzePurity>>, {data: BodyType<PurityInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  analyzePurity(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AnalyzePurityMutationResult = NonNullable<Awaited<ReturnType<typeof analyzePurity>>>
+    export type AnalyzePurityMutationBody = BodyType<PurityInput>
+    export type AnalyzePurityMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Sample purity & recovery simulation
+ */
+export const useAnalyzePurity = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzePurity>>, TError,{data: BodyType<PurityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof analyzePurity>>,
+        TError,
+        {data: BodyType<PurityInput>},
+        TContext
+      > => {
+      return useMutation(getAnalyzePurityMutationOptions(options));
     }
 
 export const getOptimizeGeometryUrl = () => {

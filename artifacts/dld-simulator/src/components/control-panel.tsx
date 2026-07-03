@@ -12,6 +12,7 @@ import { ThroughputPanel } from "./throughput-panel";
 import { DataExportPanel } from "./data-export-panel";
 import { OptimizePanel } from "./optimize-panel";
 import { CascadePanel } from "./cascade-panel";
+import { PurityPanel } from "./purity-panel";
 
 interface ControlPanelProps {
   cells?: CellEntry[];
@@ -34,6 +35,7 @@ interface ControlPanelProps {
   onThroughputResult: (data: ThroughputResponse) => void;
   onOptimizeApply: () => void;
   onCascadeApply: () => void;
+  onPurityApply: () => void;
   onPinReference: () => void;
   onClearReference: () => void;
   refLabel: string | null;
@@ -65,6 +67,7 @@ export function ControlPanel({
   onThroughputResult,
   onOptimizeApply,
   onCascadeApply,
+  onPurityApply,
   onPinReference,
   onClearReference,
   refLabel,
@@ -267,6 +270,18 @@ export function ControlPanel({
         setG={setG}
         setN={setN}
         onApply={onCascadeApply}
+      />
+
+      <PurityPanel
+        d1={d1}
+        d2={d2}
+        label1={label1}
+        label2={label2}
+        currentG={G}
+        currentN={N}
+        setG={setG}
+        setN={setN}
+        onApply={onPurityApply}
       />
 
       <ThroughputPanel

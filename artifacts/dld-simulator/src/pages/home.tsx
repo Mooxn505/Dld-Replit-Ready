@@ -112,6 +112,7 @@ export default function Home() {
         onThroughputResult={setThroughputData}
         onOptimizeApply={() => runAnalysis()}
         onCascadeApply={() => runAnalysis()}
+        onPurityApply={() => runAnalysis()}
         onPinReference={pinReference}
         onClearReference={clearReference}
         refLabel={refLabel}

@@ -283,6 +283,80 @@ export interface CascadeResponse {
   summary: CascadeSummary;
 }
 
+export interface PurityStageGeometry {
+  G: number;
+  N: number;
+}
+
+/**
+ * Which particle population is the target to enrich/recover
+ */
+export type PurityInputTarget = typeof PurityInputTarget[keyof typeof PurityInputTarget];
+
+
+export const PurityInputTarget = {
+  d1: 'd1',
+  d2: 'd2',
+} as const;
+
+export interface PurityInput {
+  /** Diameter of particle 1 (µm) */
+  d1: number;
+  /** Diameter of particle 2 (µm) */
+  d2: number;
+  /** Percentage of the sample that is the target particle (0-100) */
+  target_fraction_pct: number;
+  /** Which particle population is the target to enrich/recover */
+  target: PurityInputTarget;
+  stage1: PurityStageGeometry;
+  /** Optional second stage — output of stage 1's chosen outlet feeds stage 2 */
+  stage2?: PurityStageGeometry;
+}
+
+export interface PurityOutletResult {
+  name: string;
+  count_d1: number;
+  count_d2: number;
+  total: number;
+  purity_target_pct: number;
+}
+
+export type PurityStageResultChosenOutlet = typeof PurityStageResultChosenOutlet[keyof typeof PurityStageResultChosenOutlet];
+
+
+export const PurityStageResultChosenOutlet = {
+  bump: 'bump',
+  zigzag: 'zigzag',
+} as const;
+
+export interface PurityStageResult {
+  G: number;
+  N: number;
+  Dc: number;
+  p_bump_d1: number;
+  p_bump_d2: number;
+  outlet_bump: PurityOutletResult;
+  outlet_zigzag: PurityOutletResult;
+  chosen_outlet: PurityStageResultChosenOutlet;
+}
+
+export interface PuritySummary {
+  initial_purity_pct: number;
+  final_purity_pct: number;
+  recovery_pct: number;
+  enrichment_factor: number;
+  stages_used: number;
+}
+
+export interface PurityResponse {
+  d1: number;
+  d2: number;
+  target: string;
+  stage1: PurityStageResult;
+  stage2?: PurityStageResult;
+  summary: PuritySummary;
+}
+
 /**
  * Optimization objective: efficiency | q_max | dc_target
  */

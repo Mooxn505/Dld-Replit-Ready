@@ -21,7 +21,7 @@
  *   2. Efficiency after degradation ≥ 50 % of ideal
  */
 
-import { sortingEfficiency } from "./dld";
+import { sortingEfficiency, criticalDiameter } from "./dld";
 
 export const RE_CRIT = 0.1; // efficiency halved at this Re
 const RHO = 1000; // kg/m³ (water)
@@ -229,6 +229,153 @@ export function computeCascade(
       bottleneck_q_max_ul_min: Math.min(s1.q_max_ul_min, s2.q_max_ul_min),
       separation_achieved: separationAchieved,
       stages_agree: stagesAgree,
+    },
+  };
+}
+
+const PURITY_SIGMOID_K = 12;
+const PURITY_SAMPLE_SIZE = 1_000_000;
+
+function bumpProbability(d: number, Dc: number): number {
+  return 1 / (1 + Math.exp((-PURITY_SIGMOID_K * (d - Dc)) / Dc));
+}
+
+export interface PurityOutletResult {
+  name: "bump" | "zigzag";
+  count_d1: number;
+  count_d2: number;
+  total: number;
+  purity_target_pct: number;
+}
+
+export interface PurityStageResult {
+  G: number;
+  N: number;
+  Dc: number;
+  p_bump_d1: number;
+  p_bump_d2: number;
+  outlet_bump: PurityOutletResult;
+  outlet_zigzag: PurityOutletResult;
+  chosen_outlet: "bump" | "zigzag";
+}
+
+export interface PuritySummary {
+  initial_purity_pct: number;
+  final_purity_pct: number;
+  recovery_pct: number;
+  enrichment_factor: number;
+  stages_used: number;
+}
+
+export interface PurityResult {
+  d1: number;
+  d2: number;
+  target: "d1" | "d2";
+  stage1: PurityStageResult;
+  stage2?: PurityStageResult;
+  summary: PuritySummary;
+}
+
+function purityStage(
+  d1: number,
+  d2: number,
+  n1: number,
+  n2: number,
+  G: number,
+  N: number,
+  target: "d1" | "d2",
+): PurityStageResult {
+  const Dc = criticalDiameter(G, N);
+  const pBump1 = bumpProbability(d1, Dc);
+  const pBump2 = bumpProbability(d2, Dc);
+
+  const bumpD1 = n1 * pBump1;
+  const bumpD2 = n2 * pBump2;
+  const zigD1 = n1 * (1 - pBump1);
+  const zigD2 = n2 * (1 - pBump2);
+
+  const bumpTotal = bumpD1 + bumpD2;
+  const zigTotal = zigD1 + zigD2;
+
+  const targetInBump = target === "d1" ? bumpD1 : bumpD2;
+  const targetInZig = target === "d1" ? zigD1 : zigD2;
+
+  const bumpPurity = bumpTotal > 0 ? (targetInBump / bumpTotal) * 100 : 0;
+  const zigPurity = zigTotal > 0 ? (targetInZig / zigTotal) * 100 : 0;
+
+  const outletBump: PurityOutletResult = {
+    name: "bump",
+    count_d1: Math.round(bumpD1 * 100) / 100,
+    count_d2: Math.round(bumpD2 * 100) / 100,
+    total: Math.round(bumpTotal * 100) / 100,
+    purity_target_pct: Math.round(bumpPurity * 100) / 100,
+  };
+  const outletZig: PurityOutletResult = {
+    name: "zigzag",
+    count_d1: Math.round(zigD1 * 100) / 100,
+    count_d2: Math.round(zigD2 * 100) / 100,
+    total: Math.round(zigTotal * 100) / 100,
+    purity_target_pct: Math.round(zigPurity * 100) / 100,
+  };
+
+  const chosenOutlet: "bump" | "zigzag" = bumpPurity >= zigPurity ? "bump" : "zigzag";
+
+  return {
+    G,
+    N,
+    Dc: Math.round(Dc * 100) / 100,
+    p_bump_d1: Math.round(pBump1 * 1000) / 1000,
+    p_bump_d2: Math.round(pBump2 * 1000) / 1000,
+    outlet_bump: outletBump,
+    outlet_zigzag: outletZig,
+    chosen_outlet: chosenOutlet,
+  };
+}
+
+export function computePurity(
+  d1: number,
+  d2: number,
+  targetFractionPct: number,
+  target: "d1" | "d2",
+  g1: number,
+  n1Param: number,
+  g2?: number,
+  n2Param?: number,
+): PurityResult {
+  const targetFrac = targetFractionPct / 100;
+  const n1 = target === "d1" ? targetFrac * PURITY_SAMPLE_SIZE : (1 - targetFrac) * PURITY_SAMPLE_SIZE;
+  const n2 = target === "d2" ? targetFrac * PURITY_SAMPLE_SIZE : (1 - targetFrac) * PURITY_SAMPLE_SIZE;
+
+  const stage1 = purityStage(d1, d2, n1, n2, g1, n1Param, target);
+  const targetCountOriginal = target === "d1" ? n1 : n2;
+
+  let stage2Result: PurityStageResult | undefined;
+  let finalOutlet = stage1.chosen_outlet === "bump" ? stage1.outlet_bump : stage1.outlet_zigzag;
+  let stagesUsed = 1;
+
+  if (g2 !== undefined && n2Param !== undefined) {
+    stagesUsed = 2;
+    stage2Result = purityStage(d1, d2, finalOutlet.count_d1, finalOutlet.count_d2, g2, n2Param, target);
+    finalOutlet = stage2Result.chosen_outlet === "bump" ? stage2Result.outlet_bump : stage2Result.outlet_zigzag;
+  }
+
+  const finalTargetCount = target === "d1" ? finalOutlet.count_d1 : finalOutlet.count_d2;
+  const finalPurity = finalOutlet.purity_target_pct;
+  const recovery = targetCountOriginal > 0 ? (finalTargetCount / targetCountOriginal) * 100 : 0;
+  const enrichment = targetFractionPct > 0 ? finalPurity / targetFractionPct : 0;
+
+  return {
+    d1,
+    d2,
+    target,
+    stage1,
+    stage2: stage2Result,
+    summary: {
+      initial_purity_pct: targetFractionPct,
+      final_purity_pct: Math.round(finalPurity * 100) / 100,
+      recovery_pct: Math.round(recovery * 100) / 100,
+      enrichment_factor: Math.round(enrichment * 100) / 100,
+      stages_used: stagesUsed,
     },
   };
 }

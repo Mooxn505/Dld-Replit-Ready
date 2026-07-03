@@ -153,6 +153,36 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /dld/purity:
+    post:
+      operationId: analyzePurity
+      tags: [dld]
+      summary: Sample purity & recovery simulation
+      description: >
+        Given a mixed sample with two particle populations at a known
+        composition ratio, models probabilistic (non-binary) DLD separation
+        using a sigmoid partition function around Dc, then computes output
+        purity and recovery yield after one or two chained stages.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PurityInput"
+      responses:
+        "200":
+          description: Purity analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurityResponse"
+        "400":
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /dld/optimize:
     post:
       operationId: optimizeGeometry
@@ -783,6 +813,107 @@ components:
           $ref: "#/components/schemas/CascadeStageResult"
         summary:
           $ref: "#/components/schemas/CascadeSummary"
+
+    PurityStageGeometry:
+      type: object
+      required: [G, N]
+      properties:
+        G:
+          type: number
+        N:
+          type: integer
+
+    PurityInput:
+      type: object
+      required: [d1, d2, target_fraction_pct, target, stage1]
+      properties:
+        d1:
+          type: number
+          description: Diameter of particle 1 (µm)
+        d2:
+          type: number
+          description: Diameter of particle 2 (µm)
+        target_fraction_pct:
+          type: number
+          description: Percentage of the sample that is the target particle (0-100)
+        target:
+          type: string
+          enum: [d1, d2]
+          description: Which particle population is the target to enrich/recover
+        stage1:
+          $ref: "#/components/schemas/PurityStageGeometry"
+        stage2:
+          $ref: "#/components/schemas/PurityStageGeometry"
+          description: Optional second stage — output of stage 1's chosen outlet feeds stage 2
+
+    PurityOutletResult:
+      type: object
+      required: [name, count_d1, count_d2, total, purity_target_pct]
+      properties:
+        name:
+          type: string
+        count_d1:
+          type: number
+        count_d2:
+          type: number
+        total:
+          type: number
+        purity_target_pct:
+          type: number
+
+    PurityStageResult:
+      type: object
+      required: [G, N, Dc, p_bump_d1, p_bump_d2, outlet_bump, outlet_zigzag, chosen_outlet]
+      properties:
+        G:
+          type: number
+        N:
+          type: integer
+        Dc:
+          type: number
+        p_bump_d1:
+          type: number
+        p_bump_d2:
+          type: number
+        outlet_bump:
+          $ref: "#/components/schemas/PurityOutletResult"
+        outlet_zigzag:
+          $ref: "#/components/schemas/PurityOutletResult"
+        chosen_outlet:
+          type: string
+          enum: [bump, zigzag]
+
+    PuritySummary:
+      type: object
+      required: [initial_purity_pct, final_purity_pct, recovery_pct, enrichment_factor, stages_used]
+      properties:
+        initial_purity_pct:
+          type: number
+        final_purity_pct:
+          type: number
+        recovery_pct:
+          type: number
+        enrichment_factor:
+          type: number
+        stages_used:
+          type: integer
+
+    PurityResponse:
+      type: object
+      required: [d1, d2, target, stage1, summary]
+      properties:
+        d1:
+          type: number
+        d2:
+          type: number
+        target:
+          type: string
+        stage1:
+          $ref: "#/components/schemas/PurityStageResult"
+        stage2:
+          $ref: "#/components/schemas/PurityStageResult"
+        summary:
+          $ref: "#/components/schemas/PuritySummary"
 
     OptimizeInput:
       type: object
