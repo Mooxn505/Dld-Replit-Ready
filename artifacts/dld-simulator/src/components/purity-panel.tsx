@@ -36,9 +36,10 @@ interface PurityPanelProps {
   setG: (v: number) => void;
   setN: (v: number) => void;
   onApply: () => void;
+  onResult?: (data: PurityResponse) => void;
 }
 
-export function PurityPanel({ d1, d2, label1, label2, currentG, currentN, setG, setN, onApply }: PurityPanelProps) {
+export function PurityPanel({ d1, d2, label1, label2, currentG, currentN, setG, setN, onApply, onResult }: PurityPanelProps) {
   const [expanded, setExpanded] = useState(false);
   const [target, setTarget] = useState<"d1" | "d2">("d2");
   const [targetFractionPct, setTargetFractionPct] = useState(1);
@@ -66,7 +67,7 @@ export function PurityPanel({ d1, d2, label1, label2, currentG, currentN, setG, 
           stage2: useStage2 ? { G: g2, N: n2 } : undefined,
         },
       },
-      { onSuccess: (data) => setResult(data) },
+      { onSuccess: (data) => { setResult(data); onResult?.(data); } },
     );
   };
 

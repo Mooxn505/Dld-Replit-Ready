@@ -6,7 +6,7 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Play, Grid3X3, LineChart, Waves, Cpu, BookmarkPlus, BookmarkX } from "lucide-react";
-import type { CellEntry, AnalyzeResponse, FlowAnalysisResponse, ThroughputResponse } from "@workspace/api-client-react/src/generated/api.schemas";
+import type { CellEntry, AnalyzeResponse, FlowAnalysisResponse, ThroughputResponse, CascadeResponse, PurityResponse } from "@workspace/api-client-react/src/generated/api.schemas";
 import { MoldExportPanel } from "./mold-export-panel";
 import { ThroughputPanel } from "./throughput-panel";
 import { DataExportPanel } from "./data-export-panel";
@@ -35,7 +35,9 @@ interface ControlPanelProps {
   onThroughputResult: (data: ThroughputResponse) => void;
   onOptimizeApply: () => void;
   onCascadeApply: () => void;
+  onCascadeResult?: (data: CascadeResponse) => void;
   onPurityApply: () => void;
+  onPurityResult?: (data: PurityResponse) => void;
   onPinReference: () => void;
   onClearReference: () => void;
   refLabel: string | null;
@@ -43,6 +45,8 @@ interface ControlPanelProps {
   analyzeData: AnalyzeResponse | null;
   flowData: FlowAnalysisResponse | null;
   throughputData: ThroughputResponse | null;
+  cascadeData: CascadeResponse | null;
+  purityData: PurityResponse | null;
   isLoading: boolean;
 }
 
@@ -67,7 +71,9 @@ export function ControlPanel({
   onThroughputResult,
   onOptimizeApply,
   onCascadeApply,
+  onCascadeResult,
   onPurityApply,
+  onPurityResult,
   onPinReference,
   onClearReference,
   refLabel,
@@ -75,6 +81,8 @@ export function ControlPanel({
   analyzeData,
   flowData,
   throughputData,
+  cascadeData,
+  purityData,
   isLoading
 }: ControlPanelProps) {
   
@@ -270,6 +278,7 @@ export function ControlPanel({
         setG={setG}
         setN={setN}
         onApply={onCascadeApply}
+        onResult={onCascadeResult}
       />
 
       <PurityPanel
@@ -282,6 +291,7 @@ export function ControlPanel({
         setG={setG}
         setN={setN}
         onApply={onPurityApply}
+        onResult={onPurityResult}
       />
 
       <ThroughputPanel
@@ -302,6 +312,8 @@ export function ControlPanel({
         analyzeData={analyzeData}
         flowData={flowData}
         throughputData={throughputData}
+        cascadeData={cascadeData}
+        purityData={purityData}
       />
 
       <div className="p-4 border-t border-border/50 bg-background/30 space-y-2">

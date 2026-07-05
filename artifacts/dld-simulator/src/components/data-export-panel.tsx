@@ -7,6 +7,8 @@ import type {
   AnalyzeResponse,
   FlowAnalysisResponse,
   ThroughputResponse,
+  CascadeResponse,
+  PurityResponse,
 } from "@workspace/api-client-react/src/generated/api.schemas";
 
 interface DataExportPanelProps {
@@ -19,6 +21,8 @@ interface DataExportPanelProps {
   analyzeData: AnalyzeResponse | null;
   flowData: FlowAnalysisResponse | null;
   throughputData: ThroughputResponse | null;
+  cascadeData: CascadeResponse | null;
+  purityData: PurityResponse | null;
 }
 
 function fmt(n: number | undefined | null, decimals = 3): string {
@@ -108,6 +112,43 @@ function buildCsv(props: DataExportPanelProps): string {
     row("Recovery rate (%)", fmt((t.recovered_cells / t.total_cells_in_sample) * 100, 1));
   } else {
     comment("(Run Throughput Estimator to populate this section)");
+  }
+
+  header("CASCADE DESIGNER");
+  if (props.cascadeData) {
+    const c = props.cascadeData;
+    row("Stage 1 G (µm) / N", `${c.stage1.G} / ${c.stage1.N}`);
+    row("Stage 1 Dc (µm)", fmt(c.stage1.Dc));
+    row("Stage 1 P1 mode", c.stage1.d1_mode);
+    row("Stage 1 P2 mode", c.stage1.d2_mode);
+    row("Stage 2 G (µm) / N", `${c.stage2.G} / ${c.stage2.N}`);
+    row("Stage 2 Dc (µm)", fmt(c.stage2.Dc));
+    row("Stage 2 P1 mode", c.stage2.d1_mode);
+    row("Stage 2 P2 mode", c.stage2.d2_mode);
+    row("Overall efficiency (%)", fmt(c.summary.overall_efficiency, 1));
+    row("Dc window (µm)", fmt(c.summary.dc_window_um));
+    row("Bottleneck Q_max (µL/min)", fmt(c.summary.bottleneck_q_max_ul_min));
+    row("Separation achieved", c.summary.separation_achieved ? "Yes" : "No");
+    row("Stages agree", c.summary.stages_agree ? "Yes" : "No");
+  } else {
+    comment("(Run Cascade Designer to populate this section)");
+  }
+
+  header("PURITY SIMULATION");
+  if (props.purityData) {
+    const p = props.purityData;
+    row("Initial purity (%)", fmt(p.summary.initial_purity_pct, 1));
+    row("Final purity (%)", fmt(p.summary.final_purity_pct, 1));
+    row("Recovery (%)", fmt(p.summary.recovery_pct, 1));
+    row("Enrichment factor", `${fmt(p.summary.enrichment_factor, 1)}x`);
+    row("Stage 1 G (µm) / N", `${p.stage1.G} / ${p.stage1.N}`);
+    row("Stage 1 chosen outlet", p.stage1.chosen_outlet);
+    if (p.stage2) {
+      row("Stage 2 G (µm) / N", `${p.stage2.G} / ${p.stage2.N}`);
+      row("Stage 2 chosen outlet", p.stage2.chosen_outlet);
+    }
+  } else {
+    comment("(Run Purity Simulator to populate this section)");
   }
 
   lines.push("");
@@ -231,6 +272,38 @@ function buildPdf(props: DataExportPanelProps): jsPDF {
     note("(Run Throughput Estimator to populate this section)");
   }
 
+  sectionTitle("Cascade Designer");
+  if (props.cascadeData) {
+    const c = props.cascadeData;
+    kvRow("Stage 1 G / N", `${c.stage1.G} um / ${c.stage1.N}`);
+    kvRow("Stage 1 Dc (um)", fmt(c.stage1.Dc));
+    kvRow("Stage 1 P1 / P2 mode", `${c.stage1.d1_mode} / ${c.stage1.d2_mode}`);
+    kvRow("Stage 2 G / N", `${c.stage2.G} um / ${c.stage2.N}`);
+    kvRow("Stage 2 Dc (um)", fmt(c.stage2.Dc));
+    kvRow("Stage 2 P1 / P2 mode", `${c.stage2.d1_mode} / ${c.stage2.d2_mode}`);
+    kvRow("Overall efficiency (%)", fmt(c.summary.overall_efficiency, 1));
+    kvRow("Dc window (um)", fmt(c.summary.dc_window_um));
+    kvRow("Bottleneck Q_max (uL/min)", fmt(c.summary.bottleneck_q_max_ul_min));
+    kvRow("Separation achieved / stages agree", `${c.summary.separation_achieved ? "Yes" : "No"} / ${c.summary.stages_agree ? "Yes" : "No"}`);
+  } else {
+    note("(Run Cascade Designer to populate this section)");
+  }
+
+  sectionTitle("Purity Simulation");
+  if (props.purityData) {
+    const p = props.purityData;
+    kvRow("Initial purity (%)", fmt(p.summary.initial_purity_pct, 1));
+    kvRow("Final purity (%)", fmt(p.summary.final_purity_pct, 1));
+    kvRow("Recovery (%)", fmt(p.summary.recovery_pct, 1));
+    kvRow("Enrichment factor", `${fmt(p.summary.enrichment_factor, 1)}x`);
+    kvRow("Stage 1 G / N / outlet", `${p.stage1.G} um / ${p.stage1.N} / ${p.stage1.chosen_outlet}`);
+    if (p.stage2) {
+      kvRow("Stage 2 G / N / outlet", `${p.stage2.G} um / ${p.stage2.N} / ${p.stage2.chosen_outlet}`);
+    }
+  } else {
+    note("(Run Purity Simulator to populate this section)");
+  }
+
   ensureSpace(30);
   y += 10;
   doc.setFont("courier", "italic");
@@ -285,6 +358,8 @@ export function DataExportPanel(props: DataExportPanelProps) {
     { label: "Separation", ready: !!props.analyzeData },
     { label: "Flow", ready: !!props.flowData },
     { label: "Throughput", ready: !!props.throughputData },
+    { label: "Cascade", ready: !!props.cascadeData },
+    { label: "Purity", ready: !!props.purityData },
   ];
 
   return (

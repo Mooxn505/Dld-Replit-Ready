@@ -10,6 +10,8 @@ import {
   type DcCurveResponse,
   type FlowAnalysisResponse,
   type ThroughputResponse,
+  type CascadeResponse,
+  type PurityResponse,
 } from "@workspace/api-client-react/src/generated/api.schemas";
 
 export default function Home() {
@@ -25,6 +27,8 @@ export default function Home() {
   const [dcCurveData, setDcCurveData] = useState<DcCurveResponse | null>(null);
   const [flowData, setFlowData] = useState<FlowAnalysisResponse | null>(null);
   const [throughputData, setThroughputData] = useState<ThroughputResponse | null>(null);
+  const [cascadeData, setCascadeData] = useState<CascadeResponse | null>(null);
+  const [purityData, setPurityData] = useState<PurityResponse | null>(null);
 
   const [refDcData, setRefDcData] = useState<DcCurveResponse | null>(null);
   const [refFlowData, setRefFlowData] = useState<FlowAnalysisResponse | null>(null);
@@ -112,7 +116,9 @@ export default function Home() {
         onThroughputResult={setThroughputData}
         onOptimizeApply={() => runAnalysis()}
         onCascadeApply={() => runAnalysis()}
+        onCascadeResult={setCascadeData}
         onPurityApply={() => runAnalysis()}
+        onPurityResult={setPurityData}
         onPinReference={pinReference}
         onClearReference={clearReference}
         refLabel={refLabel}
@@ -120,6 +126,8 @@ export default function Home() {
         analyzeData={analyzeData}
         flowData={flowData}
         throughputData={throughputData}
+        cascadeData={cascadeData}
+        purityData={purityData}
         isLoading={analyzeParticles.isPending || sweepGeometry.isPending || getDcCurve.isPending || analyzeFlow.isPending}
       />
       

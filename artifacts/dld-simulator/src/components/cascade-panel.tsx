@@ -188,9 +188,10 @@ interface CascadePanelProps {
   setG: (v: number) => void;
   setN: (v: number) => void;
   onApply: () => void;
+  onResult?: (data: CascadeResponse) => void;
 }
 
-export function CascadePanel({ d1, d2, currentG, currentN, setG, setN, onApply }: CascadePanelProps) {
+export function CascadePanel({ d1, d2, currentG, currentN, setG, setN, onApply, onResult }: CascadePanelProps) {
   const [expanded, setExpanded] = useState(false);
   const [g1, setG1] = useState(currentG);
   const [n1, setN1] = useState(currentN);
@@ -205,7 +206,7 @@ export function CascadePanel({ d1, d2, currentG, currentN, setG, setN, onApply }
       {
         data: { d1, d2, stage1: { G: g1, N: n1 }, stage2: { G: g2, N: n2 } },
       },
-      { onSuccess: (data) => setResult(data) },
+      { onSuccess: (data) => { setResult(data); onResult?.(data); } },
     );
   };
 
