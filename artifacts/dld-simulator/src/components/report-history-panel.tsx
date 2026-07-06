@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ChevronDown, ChevronUp, History, Download, Trash2 } from "lucide-react";
+import { Fragment, useState } from "react";
+import { ChevronDown, ChevronUp, History, Download, Trash2, GitCompare, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { buildPdf, type DataExportPanelProps } from "./data-export-panel";
 
@@ -24,8 +24,111 @@ function formatTimestamp(ts: number): string {
   });
 }
 
+function fmt(n: number | undefined | null, decimals = 2): string {
+  if (n == null || Number.isNaN(n)) return "—";
+  return n.toFixed(decimals);
+}
+
+interface ComparisonMetric {
+  label: string;
+  a: string;
+  b: string;
+  better?: "a" | "b" | null;
+}
+
+function buildComparisonMetrics(a: ReportHistoryEntry, b: ReportHistoryEntry): ComparisonMetric[] {
+  const metrics: ComparisonMetric[] = [];
+
+  const pick = (higherIsBetter: boolean, av: number | null, bv: number | null): "a" | "b" | null => {
+    if (av == null || bv == null || av === bv) return null;
+    if (higherIsBetter) return av > bv ? "a" : "b";
+    return av < bv ? "a" : "b";
+  };
+
+  metrics.push({ label: "Geometry (G/N)", a: `${a.G}/${a.N}`, b: `${b.G}/${b.N}` });
+
+  const effA = a.analyzeData?.efficiency ?? null;
+  const effB = b.analyzeData?.efficiency ?? null;
+  metrics.push({
+    label: "Sorting efficiency (%)",
+    a: effA != null ? fmt(effA, 1) : "—",
+    b: effB != null ? fmt(effB, 1) : "—",
+    better: pick(true, effA, effB),
+  });
+
+  const dcA = a.analyzeData?.Dc ?? null;
+  const dcB = b.analyzeData?.Dc ?? null;
+  metrics.push({
+    label: "Critical diameter Dc (µm)",
+    a: fmt(dcA),
+    b: fmt(dcB),
+  });
+
+  const thrA = a.throughputData?.throughput_cells_per_min ?? null;
+  const thrB = b.throughputData?.throughput_cells_per_min ?? null;
+  metrics.push({
+    label: "Throughput (cells/min)",
+    a: thrA != null ? thrA.toFixed(0) : "—",
+    b: thrB != null ? thrB.toFixed(0) : "—",
+    better: pick(true, thrA, thrB),
+  });
+
+  const cascEffA = a.cascadeData?.summary.overall_efficiency ?? null;
+  const cascEffB = b.cascadeData?.summary.overall_efficiency ?? null;
+  metrics.push({
+    label: "Cascade overall efficiency (%)",
+    a: cascEffA != null ? fmt(cascEffA, 1) : "—",
+    b: cascEffB != null ? fmt(cascEffB, 1) : "—",
+    better: pick(true, cascEffA, cascEffB),
+  });
+
+  const purA = a.purityData?.summary.final_purity_pct ?? null;
+  const purB = b.purityData?.summary.final_purity_pct ?? null;
+  metrics.push({
+    label: "Final purity (%)",
+    a: purA != null ? fmt(purA, 1) : "—",
+    b: purB != null ? fmt(purB, 1) : "—",
+    better: pick(true, purA, purB),
+  });
+
+  const recA = a.purityData?.summary.recovery_pct ?? null;
+  const recB = b.purityData?.summary.recovery_pct ?? null;
+  metrics.push({
+    label: "Recovery (%)",
+    a: recA != null ? fmt(recA, 1) : "—",
+    b: recB != null ? fmt(recB, 1) : "—",
+    better: pick(true, recA, recB),
+  });
+
+  const enrA = a.purityData?.summary.enrichment_factor ?? null;
+  const enrB = b.purityData?.summary.enrichment_factor ?? null;
+  metrics.push({
+    label: "Enrichment factor",
+    a: enrA != null ? `${fmt(enrA, 1)}x` : "—",
+    b: enrB != null ? `${fmt(enrB, 1)}x` : "—",
+    better: pick(true, enrA, enrB),
+  });
+
+  return metrics;
+}
+
 export function ReportHistoryPanel({ history, onClear, onRemove }: ReportHistoryPanelProps) {
   const [expanded, setExpanded] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showComparison, setShowComparison] = useState(false);
+
+  const toggleSelect = (id: string) => {
+    setShowComparison(false);
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 2) return [prev[1], id];
+      return [...prev, id];
+    });
+  };
+
+  const selectedEntries = selectedIds
+    .map((id) => history.find((e) => e.id === id))
+    .filter((e): e is ReportHistoryEntry => !!e);
 
   const handleRedownload = (entry: ReportHistoryEntry) => {
     const doc = buildPdf(entry);
@@ -73,39 +176,131 @@ export function ReportHistoryPanel({ history, onClear, onRemove }: ReportHistory
                 </p>
               ) : (
                 <>
+                  <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-wider">
+                    Select two entries to compare
+                  </p>
                   <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-                    {history.map((entry) => (
-                      <div
-                        key={entry.id}
-                        className="flex items-center justify-between gap-2 px-2 py-1.5 rounded border border-border/40 bg-background/40"
-                      >
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-mono text-foreground/80 truncate">
-                            G={entry.G} N={entry.N} · {entry.label1}/{entry.label2}
-                          </p>
-                          <p className="text-[9px] font-mono text-muted-foreground">
-                            {formatTimestamp(entry.timestamp)}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
+                    {history.map((entry) => {
+                      const isSelected = selectedIds.includes(entry.id);
+                      return (
+                        <div
+                          key={entry.id}
+                          className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded border transition-colors ${
+                            isSelected
+                              ? "border-[#1D9E75]/60 bg-[#1D9E75]/10"
+                              : "border-border/40 bg-background/40"
+                          }`}
+                        >
                           <button
-                            onClick={() => handleRedownload(entry)}
-                            title="Re-download PDF"
-                            className="p-1.5 rounded border border-[#1D9E75]/40 text-[#1D9E75] bg-[#1D9E75]/5 hover:bg-[#1D9E75]/15 transition-colors"
+                            onClick={() => toggleSelect(entry.id)}
+                            className="flex items-center gap-2 min-w-0 text-left flex-1"
+                            title="Select for comparison"
                           >
-                            <Download className="w-3 h-3" />
+                            <span
+                              className={`w-3 h-3 rounded-sm border shrink-0 flex items-center justify-center ${
+                                isSelected
+                                  ? "bg-[#1D9E75] border-[#1D9E75]"
+                                  : "border-muted-foreground/40"
+                              }`}
+                            >
+                              {isSelected && <span className="w-1.5 h-1.5 bg-white rounded-[1px]" />}
+                            </span>
+                            <span className="min-w-0">
+                              <p className="text-[10px] font-mono text-foreground/80 truncate">
+                                G={entry.G} N={entry.N} · {entry.label1}/{entry.label2}
+                              </p>
+                              <p className="text-[9px] font-mono text-muted-foreground">
+                                {formatTimestamp(entry.timestamp)}
+                              </p>
+                            </span>
                           </button>
-                          <button
-                            onClick={() => onRemove(entry.id)}
-                            title="Remove entry"
-                            className="p-1.5 rounded border border-border/40 text-muted-foreground bg-background/40 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40 transition-colors"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => handleRedownload(entry)}
+                              title="Re-download PDF"
+                              className="p-1.5 rounded border border-[#1D9E75]/40 text-[#1D9E75] bg-[#1D9E75]/5 hover:bg-[#1D9E75]/15 transition-colors"
+                            >
+                              <Download className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => onRemove(entry.id)}
+                              title="Remove entry"
+                              className="p-1.5 rounded border border-border/40 text-muted-foreground bg-background/40 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/40 transition-colors"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
+
+                  {selectedEntries.length === 2 && (
+                    <button
+                      onClick={() => setShowComparison((v) => !v)}
+                      className="w-full flex items-center justify-center gap-1.5 text-[10px] font-mono uppercase tracking-wider py-1.5 rounded border border-[#1D9E75]/50 text-[#1D9E75] bg-[#1D9E75]/10 hover:bg-[#1D9E75]/20 transition-colors"
+                    >
+                      <GitCompare className="w-3 h-3" />
+                      {showComparison ? "Hide Comparison" : "Compare Selected"}
+                    </button>
+                  )}
+
+                  <AnimatePresence initial={false}>
+                    {showComparison && selectedEntries.length === 2 && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: "easeInOut" }}
+                        className="overflow-hidden"
+                      >
+                        <div className="rounded border border-border/50 bg-background/40 p-2 space-y-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider">
+                              Comparison
+                            </span>
+                            <button
+                              onClick={() => setShowComparison(false)}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-[1fr_auto_auto] gap-x-2 gap-y-1 text-[9px] font-mono">
+                            <span className="text-muted-foreground">Metric</span>
+                            <span className="text-right text-foreground/70">
+                              {formatTimestamp(selectedEntries[0].timestamp)}
+                            </span>
+                            <span className="text-right text-foreground/70">
+                              {formatTimestamp(selectedEntries[1].timestamp)}
+                            </span>
+                            {buildComparisonMetrics(selectedEntries[0], selectedEntries[1]).map((m) => (
+                              <Fragment key={m.label}>
+                                <span className="text-muted-foreground truncate">
+                                  {m.label}
+                                </span>
+                                <span
+                                  className={`text-right ${
+                                    m.better === "a" ? "text-[#1D9E75] font-bold" : "text-foreground/80"
+                                  }`}
+                                >
+                                  {m.a}
+                                </span>
+                                <span
+                                  className={`text-right ${
+                                    m.better === "b" ? "text-[#1D9E75] font-bold" : "text-foreground/80"
+                                  }`}
+                                >
+                                  {m.b}
+                                </span>
+                              </Fragment>
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   <button
                     onClick={onClear}
                     className="w-full text-center text-[9px] font-mono text-muted-foreground uppercase tracking-wider py-1.5 hover:text-destructive transition-colors"
