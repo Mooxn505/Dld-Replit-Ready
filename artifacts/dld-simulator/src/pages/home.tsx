@@ -13,6 +13,7 @@ import { ControlPanel } from "@/components/control-panel";
 import { TrajectoryVisualizer } from "@/components/trajectory-visualizer";
 import { ChartsPanel } from "@/components/charts-panel";
 import { buildPdf } from "@/components/data-export-panel";
+import type { ReportHistoryEntry } from "@/components/report-history-panel";
 import { motion } from "framer-motion";
 import {
   type AnalyzeResponse,
@@ -46,6 +47,27 @@ export default function Home() {
 
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [reportStep, setReportStep] = useState<string | null>(null);
+  const [reportHistory, setReportHistory] = useState<ReportHistoryEntry[]>(() => {
+    try {
+      const raw = localStorage.getItem("dld-report-history");
+      return raw ? (JSON.parse(raw) as ReportHistoryEntry[]) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const persistHistory = (entries: ReportHistoryEntry[]) => {
+    setReportHistory(entries);
+    try {
+      localStorage.setItem("dld-report-history", JSON.stringify(entries));
+    } catch {
+      // ignore storage errors (e.g. quota exceeded)
+    }
+  };
+
+  const clearReportHistory = () => persistHistory([]);
+  const removeReportHistoryEntry = (id: string) =>
+    persistHistory(reportHistory.filter((e) => e.id !== id));
 
   const analyzeParticles = useAnalyzeParticles();
   const sweepGeometry = useSweepGeometry();
@@ -149,7 +171,7 @@ export default function Home() {
       setPurityData(purityRes);
 
       setReportStep("Building PDF");
-      const doc = buildPdf({
+      const reportProps = {
         d1,
         d2,
         G,
@@ -161,9 +183,17 @@ export default function Home() {
         throughputData: throughputRes,
         cascadeData: cascadeRes,
         purityData: purityRes,
-      });
+      };
+      const doc = buildPdf(reportProps);
       const ts = new Date().toISOString().slice(0, 10);
       doc.save(`dld_lab_report_G${G}_N${N}_${ts}.pdf`);
+
+      const entry: ReportHistoryEntry = {
+        ...reportProps,
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        timestamp: Date.now(),
+      };
+      persistHistory([entry, ...reportHistory].slice(0, 20));
     } finally {
       setIsGeneratingReport(false);
       setReportStep(null);
@@ -209,6 +239,9 @@ export default function Home() {
         onGenerateFullReport={generateFullReport}
         isGeneratingReport={isGeneratingReport}
         reportStep={reportStep}
+        reportHistory={reportHistory}
+        onClearReportHistory={clearReportHistory}
+        onRemoveReportHistoryEntry={removeReportHistoryEntry}
       />
       
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative border-l border-border/50">

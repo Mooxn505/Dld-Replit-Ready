@@ -13,6 +13,7 @@ import { DataExportPanel } from "./data-export-panel";
 import { OptimizePanel } from "./optimize-panel";
 import { CascadePanel } from "./cascade-panel";
 import { PurityPanel } from "./purity-panel";
+import { ReportHistoryPanel, type ReportHistoryEntry } from "./report-history-panel";
 
 interface ControlPanelProps {
   cells?: CellEntry[];
@@ -51,6 +52,9 @@ interface ControlPanelProps {
   onGenerateFullReport?: () => void;
   isGeneratingReport?: boolean;
   reportStep?: string | null;
+  reportHistory?: ReportHistoryEntry[];
+  onClearReportHistory?: () => void;
+  onRemoveReportHistoryEntry?: (id: string) => void;
 }
 
 export function ControlPanel({
@@ -89,7 +93,10 @@ export function ControlPanel({
   isLoading,
   onGenerateFullReport,
   isGeneratingReport,
-  reportStep
+  reportStep,
+  reportHistory,
+  onClearReportHistory,
+  onRemoveReportHistoryEntry
 }: ControlPanelProps) {
   
   const handleCellSelect = (cellName: string, isParticle1: boolean) => {
@@ -321,6 +328,14 @@ export function ControlPanel({
         cascadeData={cascadeData}
         purityData={purityData}
       />
+
+      {reportHistory && onClearReportHistory && onRemoveReportHistoryEntry && (
+        <ReportHistoryPanel
+          history={reportHistory}
+          onClear={onClearReportHistory}
+          onRemove={onRemoveReportHistoryEntry}
+        />
+      )}
 
       <div className="p-4 border-t border-border/50 bg-background/30 space-y-2">
         {onGenerateFullReport && (
