@@ -1,8 +1,18 @@
 import { useState, useEffect } from "react";
-import { useGetCells, useAnalyzeParticles, useSweepGeometry, useGetDcCurve, useAnalyzeFlowRate } from "@workspace/api-client-react";
+import {
+  useGetCells,
+  useAnalyzeParticles,
+  useSweepGeometry,
+  useGetDcCurve,
+  useAnalyzeFlowRate,
+  useEstimateThroughput,
+  useAnalyzeCascade,
+  useAnalyzePurity,
+} from "@workspace/api-client-react";
 import { ControlPanel } from "@/components/control-panel";
 import { TrajectoryVisualizer } from "@/components/trajectory-visualizer";
 import { ChartsPanel } from "@/components/charts-panel";
+import { buildPdf } from "@/components/data-export-panel";
 import { motion } from "framer-motion";
 import {
   type AnalyzeResponse,
@@ -34,12 +44,17 @@ export default function Home() {
   const [refFlowData, setRefFlowData] = useState<FlowAnalysisResponse | null>(null);
   const [refLabel, setRefLabel] = useState<string | null>(null);
 
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+
   const analyzeParticles = useAnalyzeParticles();
   const sweepGeometry = useSweepGeometry();
   const getDcCurve = useGetDcCurve();
   const analyzeFlow = useAnalyzeFlowRate();
   const getDcCurveRef = useGetDcCurve();
   const analyzeFlowRef = useAnalyzeFlowRate();
+  const estimateThroughput = useEstimateThroughput();
+  const analyzeCascade = useAnalyzeCascade();
+  const analyzePurity = useAnalyzePurity();
   const { data: cells } = useGetCells();
 
   // Initial analysis on mount
@@ -93,6 +108,60 @@ export default function Home() {
     setRefLabel(null);
   };
 
+  const generateFullReport = async () => {
+    setIsGeneratingReport(true);
+    try {
+      const analyzeRes = await analyzeParticles.mutateAsync({
+        data: { d1, d2, G, N, label1, label2 },
+      });
+      setAnalyzeData(analyzeRes);
+
+      const flowRes = await analyzeFlow.mutateAsync({ data: { d1, d2, G, N } });
+      setFlowData(flowRes);
+
+      const throughputRes = await estimateThroughput.mutateAsync({
+        data: { d1, d2, G, N, concentration_cells_per_ml: 5_000_000, sample_volume_ml: 1 },
+      });
+      setThroughputData(throughputRes);
+
+      const stage2G = Math.max(5, G - 10);
+      const stage2N = Math.min(15, N + 3);
+      const cascadeRes = await analyzeCascade.mutateAsync({
+        data: { d1, d2, stage1: { G, N }, stage2: { G: stage2G, N: stage2N } },
+      });
+      setCascadeData(cascadeRes);
+
+      const purityRes = await analyzePurity.mutateAsync({
+        data: {
+          d1,
+          d2,
+          target_fraction_pct: 1,
+          target: "d2",
+          stage1: { G, N },
+        },
+      });
+      setPurityData(purityRes);
+
+      const doc = buildPdf({
+        d1,
+        d2,
+        G,
+        N,
+        label1,
+        label2,
+        analyzeData: analyzeRes,
+        flowData: flowRes,
+        throughputData: throughputRes,
+        cascadeData: cascadeRes,
+        purityData: purityRes,
+      });
+      const ts = new Date().toISOString().slice(0, 10);
+      doc.save(`dld_lab_report_G${G}_N${N}_${ts}.pdf`);
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden text-foreground selection:bg-primary/30">
       <ControlPanel
@@ -129,6 +198,8 @@ export default function Home() {
         cascadeData={cascadeData}
         purityData={purityData}
         isLoading={analyzeParticles.isPending || sweepGeometry.isPending || getDcCurve.isPending || analyzeFlow.isPending}
+        onGenerateFullReport={generateFullReport}
+        isGeneratingReport={isGeneratingReport}
       />
       
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative border-l border-border/50">

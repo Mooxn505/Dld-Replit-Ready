@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Play, Grid3X3, LineChart, Waves, Cpu, BookmarkPlus, BookmarkX } from "lucide-react";
+import { Play, Grid3X3, LineChart, Waves, Cpu, BookmarkPlus, BookmarkX, FileDown } from "lucide-react";
 import type { CellEntry, AnalyzeResponse, FlowAnalysisResponse, ThroughputResponse, CascadeResponse, PurityResponse } from "@workspace/api-client-react/src/generated/api.schemas";
 import { MoldExportPanel } from "./mold-export-panel";
 import { ThroughputPanel } from "./throughput-panel";
@@ -48,6 +48,8 @@ interface ControlPanelProps {
   cascadeData: CascadeResponse | null;
   purityData: PurityResponse | null;
   isLoading: boolean;
+  onGenerateFullReport?: () => void;
+  isGeneratingReport?: boolean;
 }
 
 export function ControlPanel({
@@ -83,7 +85,9 @@ export function ControlPanel({
   throughputData,
   cascadeData,
   purityData,
-  isLoading
+  isLoading,
+  onGenerateFullReport,
+  isGeneratingReport
 }: ControlPanelProps) {
   
   const handleCellSelect = (cellName: string, isParticle1: boolean) => {
@@ -317,6 +321,23 @@ export function ControlPanel({
       />
 
       <div className="p-4 border-t border-border/50 bg-background/30 space-y-2">
+        {onGenerateFullReport && (
+          <Button
+            onClick={onGenerateFullReport}
+            disabled={isLoading || isGeneratingReport}
+            variant="outline"
+            className="w-full font-mono uppercase tracking-wider text-xs h-9 border-[#1D9E75]/50 text-[#1D9E75] bg-[#1D9E75]/10 hover:bg-[#1D9E75]/20"
+          >
+            {isGeneratingReport ? (
+              <span className="animate-pulse">Generating Full Report…</span>
+            ) : (
+              <>
+                <FileDown className="w-3.5 h-3.5 mr-2" />
+                Generate Full Report
+              </>
+            )}
+          </Button>
+        )}
         <Button 
           onClick={onAnalyze} 
           disabled={isLoading}

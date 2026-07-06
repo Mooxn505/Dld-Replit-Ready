@@ -11,7 +11,7 @@ import type {
   PurityResponse,
 } from "@workspace/api-client-react/src/generated/api.schemas";
 
-interface DataExportPanelProps {
+export interface DataExportPanelProps {
   d1: number;
   d2: number;
   G: number;
@@ -161,7 +161,7 @@ const PAGE_WIDTH = 612; // US Letter, pt
 const PAGE_HEIGHT = 792;
 const CONTENT_WIDTH = PAGE_WIDTH - PAGE_MARGIN * 2;
 
-function buildPdf(props: DataExportPanelProps): jsPDF {
+export function buildPdf(props: DataExportPanelProps): jsPDF {
   const doc = new jsPDF({ unit: "pt", format: "letter" });
   let y = PAGE_MARGIN;
 
