@@ -45,6 +45,7 @@ export default function Home() {
   const [refLabel, setRefLabel] = useState<string | null>(null);
 
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [reportStep, setReportStep] = useState<string | null>(null);
 
   const analyzeParticles = useAnalyzeParticles();
   const sweepGeometry = useSweepGeometry();
@@ -111,19 +112,23 @@ export default function Home() {
   const generateFullReport = async () => {
     setIsGeneratingReport(true);
     try {
+      setReportStep("Analysis");
       const analyzeRes = await analyzeParticles.mutateAsync({
         data: { d1, d2, G, N, label1, label2 },
       });
       setAnalyzeData(analyzeRes);
 
+      setReportStep("Flow Analysis");
       const flowRes = await analyzeFlow.mutateAsync({ data: { d1, d2, G, N } });
       setFlowData(flowRes);
 
+      setReportStep("Throughput");
       const throughputRes = await estimateThroughput.mutateAsync({
         data: { d1, d2, G, N, concentration_cells_per_ml: 5_000_000, sample_volume_ml: 1 },
       });
       setThroughputData(throughputRes);
 
+      setReportStep("Cascade");
       const stage2G = Math.max(5, G - 10);
       const stage2N = Math.min(15, N + 3);
       const cascadeRes = await analyzeCascade.mutateAsync({
@@ -131,6 +136,7 @@ export default function Home() {
       });
       setCascadeData(cascadeRes);
 
+      setReportStep("Purity");
       const purityRes = await analyzePurity.mutateAsync({
         data: {
           d1,
@@ -142,6 +148,7 @@ export default function Home() {
       });
       setPurityData(purityRes);
 
+      setReportStep("Building PDF");
       const doc = buildPdf({
         d1,
         d2,
@@ -159,6 +166,7 @@ export default function Home() {
       doc.save(`dld_lab_report_G${G}_N${N}_${ts}.pdf`);
     } finally {
       setIsGeneratingReport(false);
+      setReportStep(null);
     }
   };
 
@@ -200,6 +208,7 @@ export default function Home() {
         isLoading={analyzeParticles.isPending || sweepGeometry.isPending || getDcCurve.isPending || analyzeFlow.isPending}
         onGenerateFullReport={generateFullReport}
         isGeneratingReport={isGeneratingReport}
+        reportStep={reportStep}
       />
       
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative border-l border-border/50">

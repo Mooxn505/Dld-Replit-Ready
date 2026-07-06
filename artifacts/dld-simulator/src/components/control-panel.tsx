@@ -50,6 +50,7 @@ interface ControlPanelProps {
   isLoading: boolean;
   onGenerateFullReport?: () => void;
   isGeneratingReport?: boolean;
+  reportStep?: string | null;
 }
 
 export function ControlPanel({
@@ -87,7 +88,8 @@ export function ControlPanel({
   purityData,
   isLoading,
   onGenerateFullReport,
-  isGeneratingReport
+  isGeneratingReport,
+  reportStep
 }: ControlPanelProps) {
   
   const handleCellSelect = (cellName: string, isParticle1: boolean) => {
@@ -322,21 +324,28 @@ export function ControlPanel({
 
       <div className="p-4 border-t border-border/50 bg-background/30 space-y-2">
         {onGenerateFullReport && (
-          <Button
-            onClick={onGenerateFullReport}
-            disabled={isLoading || isGeneratingReport}
-            variant="outline"
-            className="w-full font-mono uppercase tracking-wider text-xs h-9 border-[#1D9E75]/50 text-[#1D9E75] bg-[#1D9E75]/10 hover:bg-[#1D9E75]/20"
-          >
-            {isGeneratingReport ? (
-              <span className="animate-pulse">Generating Full Report…</span>
-            ) : (
-              <>
-                <FileDown className="w-3.5 h-3.5 mr-2" />
-                Generate Full Report
-              </>
+          <div className="space-y-1">
+            <Button
+              onClick={onGenerateFullReport}
+              disabled={isLoading || isGeneratingReport}
+              variant="outline"
+              className="w-full font-mono uppercase tracking-wider text-xs h-9 border-[#1D9E75]/50 text-[#1D9E75] bg-[#1D9E75]/10 hover:bg-[#1D9E75]/20"
+            >
+              {isGeneratingReport ? (
+                <span className="animate-pulse">Generating Full Report…</span>
+              ) : (
+                <>
+                  <FileDown className="w-3.5 h-3.5 mr-2" />
+                  Generate Full Report
+                </>
+              )}
+            </Button>
+            {isGeneratingReport && reportStep && (
+              <p className="text-center text-[9px] font-mono text-[#1D9E75]/80 uppercase tracking-widest animate-pulse">
+                Step: {reportStep}
+              </p>
             )}
-          </Button>
+          </div>
         )}
         <Button 
           onClick={onAnalyze} 
