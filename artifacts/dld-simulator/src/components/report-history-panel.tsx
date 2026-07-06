@@ -1,5 +1,5 @@
-import { Fragment, useState } from "react";
-import { ChevronDown, ChevronUp, History, Download, Trash2, GitCompare, X } from "lucide-react";
+import { Fragment, useMemo, useState } from "react";
+import { ChevronDown, ChevronUp, History, Download, Trash2, GitCompare, X, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { buildPdf, type DataExportPanelProps } from "./data-export-panel";
 
@@ -112,10 +112,56 @@ function buildComparisonMetrics(a: ReportHistoryEntry, b: ReportHistoryEntry): C
   return metrics;
 }
 
+function computeCompositeScores(history: ReportHistoryEntry[]): Map<string, number> {
+  const scores = new Map<string, number>();
+  if (history.length < 2) return scores;
+
+  const maxThroughput = Math.max(
+    0,
+    ...history.map((e) => e.throughputData?.throughput_cells_per_min ?? 0),
+  );
+
+  for (const entry of history) {
+    const parts: number[] = [];
+    if (entry.analyzeData?.efficiency != null) parts.push(entry.analyzeData.efficiency);
+    if (entry.cascadeData?.summary.overall_efficiency != null)
+      parts.push(entry.cascadeData.summary.overall_efficiency);
+    if (entry.purityData?.summary.final_purity_pct != null)
+      parts.push(entry.purityData.summary.final_purity_pct);
+    if (entry.purityData?.summary.recovery_pct != null)
+      parts.push(entry.purityData.summary.recovery_pct);
+    if (maxThroughput > 0 && entry.throughputData?.throughput_cells_per_min != null) {
+      parts.push((entry.throughputData.throughput_cells_per_min / maxThroughput) * 100);
+    }
+    if (parts.length > 0) {
+      scores.set(
+        entry.id,
+        parts.reduce((sum, v) => sum + v, 0) / parts.length,
+      );
+    }
+  }
+
+  return scores;
+}
+
 export function ReportHistoryPanel({ history, onClear, onRemove }: ReportHistoryPanelProps) {
   const [expanded, setExpanded] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showComparison, setShowComparison] = useState(false);
+
+  const compositeScores = useMemo(() => computeCompositeScores(history), [history]);
+  const bestId = useMemo(() => {
+    if (compositeScores.size === 0) return null;
+    let best: string | null = null;
+    let bestScore = -Infinity;
+    for (const [id, score] of compositeScores.entries()) {
+      if (score > bestScore) {
+        bestScore = score;
+        best = id;
+      }
+    }
+    return best;
+  }, [compositeScores]);
 
   const toggleSelect = (id: string) => {
     setShowComparison(false);
@@ -176,8 +222,13 @@ export function ReportHistoryPanel({ history, onClear, onRemove }: ReportHistory
                 </p>
               ) : (
                 <>
-                  <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-wider">
+                  <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-wider flex items-center gap-1">
                     Select two entries to compare
+                    {bestId && (
+                      <span className="flex items-center gap-0.5 text-yellow-400/90 normal-case">
+                        · <Star className="w-2.5 h-2.5 fill-yellow-400" /> = best run
+                      </span>
+                    )}
                   </p>
                   <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
                     {history.map((entry) => {
@@ -206,7 +257,12 @@ export function ReportHistoryPanel({ history, onClear, onRemove }: ReportHistory
                               {isSelected && <span className="w-1.5 h-1.5 bg-white rounded-[1px]" />}
                             </span>
                             <span className="min-w-0">
-                              <p className="text-[10px] font-mono text-foreground/80 truncate">
+                              <p className="text-[10px] font-mono text-foreground/80 truncate flex items-center gap-1">
+                                {entry.id === bestId && (
+                                  <span title="Best performing run">
+                                    <Star className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400 shrink-0" />
+                                  </span>
+                                )}
                                 G={entry.G} N={entry.N} · {entry.label1}/{entry.label2}
                               </p>
                               <p className="text-[9px] font-mono text-muted-foreground">
