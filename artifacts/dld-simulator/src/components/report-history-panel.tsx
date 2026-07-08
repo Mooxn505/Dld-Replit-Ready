@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, History, Download, Trash2, GitCompare, X, Star, RotateCcw, Pencil, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { buildPdf, type DataExportPanelProps } from "./data-export-panel";
+import { buildPdf, buildCombinedPdf, type DataExportPanelProps } from "./data-export-panel";
 
 export interface ReportHistoryEntry extends DataExportPanelProps {
   id: string;
@@ -452,12 +452,27 @@ export function ReportHistoryPanel({ history, onClear, onRemove, onLoadConfig, o
                     )}
                   </AnimatePresence>
 
-                  <button
-                    onClick={onClear}
-                    className="w-full text-center text-[9px] font-mono text-muted-foreground uppercase tracking-wider py-1.5 hover:text-destructive transition-colors"
-                  >
-                    Clear all history
-                  </button>
+                  <div className="flex items-center gap-2 pt-1">
+                    {history.length >= 2 && (
+                      <button
+                        onClick={() => {
+                          const doc = buildCombinedPdf(history);
+                          const ts = new Date().toISOString().slice(0, 10);
+                          doc.save(`dld_combined_report_${ts}_${history.length}runs.pdf`);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 text-[9px] font-mono uppercase tracking-wider py-1.5 rounded border border-[#1D9E75]/50 text-[#1D9E75] bg-[#1D9E75]/8 hover:bg-[#1D9E75]/20 transition-colors"
+                      >
+                        <Download className="w-3 h-3" />
+                        Export all ({history.length}) as PDF
+                      </button>
+                    )}
+                    <button
+                      onClick={onClear}
+                      className={`text-[9px] font-mono text-muted-foreground uppercase tracking-wider py-1.5 hover:text-destructive transition-colors ${history.length >= 2 ? "" : "w-full text-center"}`}
+                    >
+                      Clear all
+                    </button>
+                  </div>
                 </>
               )}
             </div>

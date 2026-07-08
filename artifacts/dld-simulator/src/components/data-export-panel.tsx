@@ -330,6 +330,228 @@ export function buildPdf(props: DataExportPanelProps): jsPDF {
   return doc;
 }
 
+export interface CombinedReportEntry extends DataExportPanelProps {
+  id: string;
+  timestamp: number;
+  note?: string;
+}
+
+export function buildCombinedPdf(entries: CombinedReportEntry[]): jsPDF {
+  const doc = new jsPDF({ unit: "pt", format: "letter" });
+  let y = PAGE_MARGIN;
+
+  const ensureSpace = (needed: number) => {
+    if (y + needed > PAGE_HEIGHT - PAGE_MARGIN) {
+      doc.addPage();
+      y = PAGE_MARGIN;
+    }
+  };
+
+  const sectionTitle = (title: string) => {
+    ensureSpace(30);
+    y += 10;
+    doc.setDrawColor(29, 158, 117);
+    doc.setLineWidth(1.2);
+    doc.line(PAGE_MARGIN, y, PAGE_WIDTH - PAGE_MARGIN, y);
+    y += 16;
+    doc.setFont("courier", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(20, 20, 20);
+    doc.text(title.toUpperCase(), PAGE_MARGIN, y);
+    y += 14;
+  };
+
+  const kvRow = (label: string, value: string) => {
+    ensureSpace(16);
+    doc.setFont("courier", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(90, 90, 90);
+    doc.text(label, PAGE_MARGIN, y);
+    doc.setTextColor(20, 20, 20);
+    doc.setFont("courier", "bold");
+    doc.text(value, PAGE_MARGIN + 260, y);
+    y += 14;
+  };
+
+  const italicNote = (text: string) => {
+    ensureSpace(14);
+    doc.setFont("courier", "italic");
+    doc.setFontSize(8.5);
+    doc.setTextColor(140, 140, 140);
+    doc.text(text, PAGE_MARGIN, y);
+    y += 14;
+  };
+
+  const renderEntry = (entry: CombinedReportEntry, runIndex: number) => {
+    // Run header
+    doc.setFont("courier", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(29, 158, 117);
+    doc.text(`RUN ${runIndex}`, PAGE_MARGIN, y);
+    y += 18;
+    doc.setFontSize(10);
+    doc.setFont("courier", "normal");
+    doc.setTextColor(90, 90, 90);
+    const ts = new Date(entry.timestamp).toISOString().replace("T", " ").slice(0, 19) + " UTC";
+    doc.text(`Generated: ${ts}`, PAGE_MARGIN, y);
+    y += 14;
+    if (entry.note) {
+      doc.setFont("courier", "italic");
+      doc.setFontSize(9);
+      doc.setTextColor(180, 140, 40);
+      const noteLines = doc.splitTextToSize(`Note: ${entry.note}`, PAGE_WIDTH - PAGE_MARGIN * 2);
+      doc.text(noteLines, PAGE_MARGIN, y);
+      y += noteLines.length * 12 + 4;
+    }
+
+    sectionTitle("Geometry Parameters");
+    kvRow("Particle 1 diameter (um)", `${entry.d1}`);
+    kvRow("Particle 1 label", entry.label1);
+    kvRow("Particle 2 diameter (um)", `${entry.d2}`);
+    kvRow("Particle 2 label", entry.label2);
+    kvRow("Pillar gap G (um)", `${entry.G}`);
+    kvRow("Array period N", `${entry.N}`);
+
+    sectionTitle("Separation Analysis");
+    if (entry.analyzeData) {
+      const d = entry.analyzeData;
+      kvRow("Critical diameter Dc (um)", fmt(d.Dc));
+      kvRow("Sorting efficiency (%)", fmt(d.efficiency, 1));
+      kvRow("Separation status", d.separated ? "SEPARATED" : "MIXED");
+      kvRow("Delta lateral displacement (um/row)", fmt(d.delta_lateral));
+      kvRow("Particle 1 path", d.p1_path ?? "-");
+      kvRow("Particle 2 path", d.p2_path ?? "-");
+    } else {
+      italicNote("(No analysis data)");
+    }
+
+    sectionTitle("Flow Rate Analysis");
+    if (entry.flowData) {
+      const f = entry.flowData;
+      kvRow("Ideal sorting efficiency (%)", fmt(f.ideal_efficiency, 1));
+      kvRow("Re critical", `${f.re_crit}`);
+      kvRow("Optimal velocity range (mm/s)", `${f.optimal_v_min_mm_s} - ${f.optimal_v_max_mm_s}`);
+      kvRow("Optimal flow rate range (uL/min)", `${fmt(f.optimal_q_min_ul_min)} - ${fmt(f.optimal_q_max_ul_min)}`);
+    } else {
+      italicNote("(No flow data)");
+    }
+
+    sectionTitle("Throughput Estimate");
+    if (entry.throughputData) {
+      const t = entry.throughputData;
+      kvRow("Throughput (cells/min)", formatCells(t.throughput_cells_per_min));
+      kvRow("Throughput (cells/hr)", formatCells(t.throughput_cells_per_hour));
+      kvRow("Processing time (min)", fmt(t.processing_time_min, 1));
+      kvRow("Recovery rate (%)", fmt((t.recovered_cells / t.total_cells_in_sample) * 100, 1));
+    } else {
+      italicNote("(No throughput data)");
+    }
+
+    sectionTitle("Cascade Designer");
+    if (entry.cascadeData) {
+      const c = entry.cascadeData;
+      kvRow("Stage 1 G / N", `${c.stage1.G} um / ${c.stage1.N}`);
+      kvRow("Stage 2 G / N", `${c.stage2.G} um / ${c.stage2.N}`);
+      kvRow("Overall efficiency (%)", fmt(c.summary.overall_efficiency, 1));
+      kvRow("Separation achieved", c.summary.separation_achieved ? "Yes" : "No");
+    } else {
+      italicNote("(No cascade data)");
+    }
+
+    sectionTitle("Purity Simulation");
+    if (entry.purityData) {
+      const p = entry.purityData;
+      kvRow("Initial purity (%)", fmt(p.summary.initial_purity_pct, 1));
+      kvRow("Final purity (%)", fmt(p.summary.final_purity_pct, 1));
+      kvRow("Recovery (%)", fmt(p.summary.recovery_pct, 1));
+      kvRow("Enrichment factor", `${fmt(p.summary.enrichment_factor, 1)}x`);
+    } else {
+      italicNote("(No purity data)");
+    }
+  };
+
+  // ── Cover page ──────────────────────────────────────────────────────────────
+  doc.setFont("courier", "bold");
+  doc.setFontSize(20);
+  doc.setTextColor(20, 20, 20);
+  doc.text("DLD CELL SORTING SIMULATOR", PAGE_MARGIN, y);
+  y += 22;
+  doc.setFontSize(13);
+  doc.setFont("courier", "normal");
+  doc.setTextColor(90, 90, 90);
+  doc.text("Combined Lab Report — All Simulation Runs", PAGE_MARGIN, y);
+  y += 16;
+  const coverTs = new Date().toISOString().replace("T", " ").slice(0, 19) + " UTC";
+  doc.setFontSize(9);
+  doc.text(`Generated: ${coverTs}  ·  ${entries.length} run${entries.length !== 1 ? "s" : ""}  ·  v1.2.0-BETA`, PAGE_MARGIN, y);
+  y += 30;
+
+  // Index table header
+  doc.setDrawColor(29, 158, 117);
+  doc.setLineWidth(1.2);
+  doc.line(PAGE_MARGIN, y, PAGE_WIDTH - PAGE_MARGIN, y);
+  y += 14;
+  doc.setFont("courier", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(20, 20, 20);
+  doc.text("Run", PAGE_MARGIN, y);
+  doc.text("G / N", PAGE_MARGIN + 36, y);
+  doc.text("Particles", PAGE_MARGIN + 90, y);
+  doc.text("Efficiency", PAGE_MARGIN + 210, y);
+  doc.text("Purity", PAGE_MARGIN + 290, y);
+  doc.text("Timestamp", PAGE_MARGIN + 350, y);
+  y += 12;
+  doc.setLineWidth(0.5);
+  doc.line(PAGE_MARGIN, y, PAGE_WIDTH - PAGE_MARGIN, y);
+  y += 10;
+
+  // Index rows
+  entries.forEach((entry, i) => {
+    ensureSpace(18);
+    doc.setFont("courier", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(60, 60, 60);
+    doc.text(`${i + 1}`, PAGE_MARGIN + 4, y);
+    doc.text(`${entry.G}/${entry.N}`, PAGE_MARGIN + 36, y);
+    doc.text(`${entry.label1}/${entry.label2}`, PAGE_MARGIN + 90, y);
+    doc.text(entry.analyzeData ? `${fmt(entry.analyzeData.efficiency, 1)}%` : "—", PAGE_MARGIN + 210, y);
+    doc.text(entry.purityData ? `${fmt(entry.purityData.summary.final_purity_pct, 1)}%` : "—", PAGE_MARGIN + 290, y);
+    const rowTs = new Date(entry.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    doc.text(rowTs, PAGE_MARGIN + 350, y);
+    y += 14;
+    if (entry.note) {
+      doc.setFont("courier", "italic");
+      doc.setFontSize(7.5);
+      doc.setTextColor(160, 130, 40);
+      const noteLines = doc.splitTextToSize(`  Note: ${entry.note}`, PAGE_WIDTH - PAGE_MARGIN * 2 - 36);
+      doc.text(noteLines, PAGE_MARGIN + 36, y);
+      y += noteLines.length * 10 + 2;
+    }
+  });
+
+  // ── Per-run pages ────────────────────────────────────────────────────────────
+  entries.forEach((entry, i) => {
+    doc.addPage();
+    y = PAGE_MARGIN;
+    renderEntry(entry, i + 1);
+  });
+
+  // ── Page numbers ─────────────────────────────────────────────────────────────
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFont("courier", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(160, 160, 160);
+    doc.text(`Page ${i} of ${pageCount}`, PAGE_WIDTH - PAGE_MARGIN - 60, PAGE_HEIGHT - 24);
+    if (i > 1) {
+      doc.text(`Run ${i - 1} of ${entries.length}`, PAGE_MARGIN, PAGE_HEIGHT - 24);
+    }
+  }
+
+  return doc;
+}
+
 export function DataExportPanel(props: DataExportPanelProps) {
   const [expanded, setExpanded] = useState(false);
 
