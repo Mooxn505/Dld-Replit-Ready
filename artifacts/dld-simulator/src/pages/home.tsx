@@ -242,6 +242,14 @@ export default function Home() {
         reportHistory={reportHistory}
         onClearReportHistory={clearReportHistory}
         onRemoveReportHistoryEntry={removeReportHistoryEntry}
+        onLoadReportConfig={({ G: g, N: n, d1: newD1, d2: newD2, label1: newLabel1, label2: newLabel2 }) => {
+          setG(g);
+          setN(n);
+          setD1(newD1);
+          setD2(newD2);
+          setLabel1(newLabel1);
+          setLabel2(newLabel2);
+        }}
       />
       
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative border-l border-border/50">

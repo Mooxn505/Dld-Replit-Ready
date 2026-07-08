@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, History, Download, Trash2, GitCompare, X, Star } from "lucide-react";
+import { ChevronDown, ChevronUp, History, Download, Trash2, GitCompare, X, Star, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { buildPdf, type DataExportPanelProps } from "./data-export-panel";
 
@@ -8,10 +8,20 @@ export interface ReportHistoryEntry extends DataExportPanelProps {
   timestamp: number;
 }
 
+export interface LoadConfigPayload {
+  G: number;
+  N: number;
+  d1: number;
+  d2: number;
+  label1: string;
+  label2: string;
+}
+
 interface ReportHistoryPanelProps {
   history: ReportHistoryEntry[];
   onClear: () => void;
   onRemove: (id: string) => void;
+  onLoadConfig?: (payload: LoadConfigPayload) => void;
 }
 
 function formatTimestamp(ts: number): string {
@@ -144,7 +154,7 @@ function computeCompositeScores(history: ReportHistoryEntry[]): Map<string, numb
   return scores;
 }
 
-export function ReportHistoryPanel({ history, onClear, onRemove }: ReportHistoryPanelProps) {
+export function ReportHistoryPanel({ history, onClear, onRemove, onLoadConfig }: ReportHistoryPanelProps) {
   const [expanded, setExpanded] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showComparison, setShowComparison] = useState(false);
@@ -271,6 +281,24 @@ export function ReportHistoryPanel({ history, onClear, onRemove }: ReportHistory
                             </span>
                           </button>
                           <div className="flex items-center gap-1 shrink-0">
+                            {onLoadConfig && (
+                              <button
+                                onClick={() =>
+                                  onLoadConfig({
+                                    G: entry.G,
+                                    N: entry.N,
+                                    d1: entry.d1,
+                                    d2: entry.d2,
+                                    label1: entry.label1,
+                                    label2: entry.label2,
+                                  })
+                                }
+                                title="Load this configuration into the simulator"
+                                className="p-1.5 rounded border border-blue-500/40 text-blue-400 bg-blue-500/5 hover:bg-blue-500/15 transition-colors"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                              </button>
+                            )}
                             <button
                               onClick={() => handleRedownload(entry)}
                               title="Re-download PDF"
