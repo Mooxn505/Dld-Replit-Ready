@@ -56,6 +56,7 @@ interface ControlPanelProps {
   onClearReportHistory?: () => void;
   onRemoveReportHistoryEntry?: (id: string) => void;
   onLoadReportConfig?: (payload: { G: number; N: number; d1: number; d2: number; label1: string; label2: string }) => void;
+  onUpdateReportNote?: (id: string, note: string) => void;
 }
 
 export function ControlPanel({
@@ -98,7 +99,8 @@ export function ControlPanel({
   reportHistory,
   onClearReportHistory,
   onRemoveReportHistoryEntry,
-  onLoadReportConfig
+  onLoadReportConfig,
+  onUpdateReportNote
 }: ControlPanelProps) {
   
   const handleCellSelect = (cellName: string, isParticle1: boolean) => {
@@ -337,6 +339,7 @@ export function ControlPanel({
           onClear={onClearReportHistory}
           onRemove={onRemoveReportHistoryEntry}
           onLoadConfig={onLoadReportConfig}
+          onUpdateNote={onUpdateReportNote}
         />
       )}
 

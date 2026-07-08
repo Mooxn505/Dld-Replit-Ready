@@ -68,6 +68,8 @@ export default function Home() {
   const clearReportHistory = () => persistHistory([]);
   const removeReportHistoryEntry = (id: string) =>
     persistHistory(reportHistory.filter((e) => e.id !== id));
+  const updateReportHistoryNote = (id: string, note: string) =>
+    persistHistory(reportHistory.map((e) => (e.id === id ? { ...e, note } : e)));
 
   const analyzeParticles = useAnalyzeParticles();
   const sweepGeometry = useSweepGeometry();
@@ -242,6 +244,7 @@ export default function Home() {
         reportHistory={reportHistory}
         onClearReportHistory={clearReportHistory}
         onRemoveReportHistoryEntry={removeReportHistoryEntry}
+        onUpdateReportNote={updateReportHistoryNote}
         onLoadReportConfig={({ G: g, N: n, d1: newD1, d2: newD2, label1: newLabel1, label2: newLabel2 }) => {
           setG(g);
           setN(n);

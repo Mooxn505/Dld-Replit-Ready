@@ -1,11 +1,12 @@
-import { Fragment, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, History, Download, Trash2, GitCompare, X, Star, RotateCcw } from "lucide-react";
+import { Fragment, useMemo, useRef, useState } from "react";
+import { ChevronDown, ChevronUp, History, Download, Trash2, GitCompare, X, Star, RotateCcw, Pencil, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { buildPdf, type DataExportPanelProps } from "./data-export-panel";
 
 export interface ReportHistoryEntry extends DataExportPanelProps {
   id: string;
   timestamp: number;
+  note?: string;
 }
 
 export interface LoadConfigPayload {
@@ -22,6 +23,7 @@ interface ReportHistoryPanelProps {
   onClear: () => void;
   onRemove: (id: string) => void;
   onLoadConfig?: (payload: LoadConfigPayload) => void;
+  onUpdateNote?: (id: string, note: string) => void;
 }
 
 function formatTimestamp(ts: number): string {
@@ -154,10 +156,13 @@ function computeCompositeScores(history: ReportHistoryEntry[]): Map<string, numb
   return scores;
 }
 
-export function ReportHistoryPanel({ history, onClear, onRemove, onLoadConfig }: ReportHistoryPanelProps) {
+export function ReportHistoryPanel({ history, onClear, onRemove, onLoadConfig, onUpdateNote }: ReportHistoryPanelProps) {
   const [expanded, setExpanded] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showComparison, setShowComparison] = useState(false);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [draftNote, setDraftNote] = useState("");
+  const noteInputRef = useRef<HTMLTextAreaElement>(null);
 
   const compositeScores = useMemo(() => computeCompositeScores(history), [history]);
   const bestId = useMemo(() => {
@@ -278,9 +283,60 @@ export function ReportHistoryPanel({ history, onClear, onRemove, onLoadConfig }:
                               <p className="text-[9px] font-mono text-muted-foreground">
                                 {formatTimestamp(entry.timestamp)}
                               </p>
+                              {editingNoteId === entry.id ? (
+                                <div className="mt-1 flex items-start gap-1" onClick={(e) => e.stopPropagation()}>
+                                  <textarea
+                                    ref={noteInputRef}
+                                    value={draftNote}
+                                    onChange={(e) => setDraftNote(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        onUpdateNote?.(entry.id, draftNote.trim());
+                                        setEditingNoteId(null);
+                                      }
+                                      if (e.key === "Escape") setEditingNoteId(null);
+                                    }}
+                                    rows={2}
+                                    placeholder="Add a note… (Enter to save)"
+                                    className="flex-1 text-[9px] font-mono bg-background/60 border border-border/60 rounded px-1.5 py-1 text-foreground/80 placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:border-[#1D9E75]/60"
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      onUpdateNote?.(entry.id, draftNote.trim());
+                                      setEditingNoteId(null);
+                                    }}
+                                    className="mt-0.5 p-1 rounded text-[#1D9E75] hover:bg-[#1D9E75]/10 transition-colors"
+                                  >
+                                    <Check className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ) : entry.note ? (
+                                <p className="text-[9px] font-mono text-foreground/60 mt-0.5 leading-tight line-clamp-2">
+                                  "{entry.note}"
+                                </p>
+                              ) : null}
                             </span>
                           </button>
                           <div className="flex items-center gap-1 shrink-0">
+                            {onUpdateNote && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDraftNote(entry.note ?? "");
+                                  setEditingNoteId(editingNoteId === entry.id ? null : entry.id);
+                                  setTimeout(() => noteInputRef.current?.focus(), 50);
+                                }}
+                                title={entry.note ? "Edit note" : "Add note"}
+                                className={`p-1.5 rounded border transition-colors ${
+                                  entry.note
+                                    ? "border-amber-500/40 text-amber-400 bg-amber-500/5 hover:bg-amber-500/15"
+                                    : "border-border/40 text-muted-foreground/60 bg-background/40 hover:text-amber-400 hover:border-amber-500/40"
+                                }`}
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                            )}
                             {onLoadConfig && (
                               <button
                                 onClick={() =>
@@ -358,6 +414,17 @@ export function ReportHistoryPanel({ history, onClear, onRemove, onLoadConfig }:
                             <span className="text-right text-foreground/70">
                               {formatTimestamp(selectedEntries[1].timestamp)}
                             </span>
+                            {(selectedEntries[0].note || selectedEntries[1].note) && (
+                              <Fragment key="notes">
+                                <span className="text-muted-foreground">Notes</span>
+                                <span className="text-right text-amber-400/80 max-w-[80px] truncate" title={selectedEntries[0].note ?? ""}>
+                                  {selectedEntries[0].note || "—"}
+                                </span>
+                                <span className="text-right text-amber-400/80 max-w-[80px] truncate" title={selectedEntries[1].note ?? ""}>
+                                  {selectedEntries[1].note || "—"}
+                                </span>
+                              </Fragment>
+                            )}
                             {buildComparisonMetrics(selectedEntries[0], selectedEntries[1]).map((m) => (
                               <Fragment key={m.label}>
                                 <span className="text-muted-foreground truncate">
