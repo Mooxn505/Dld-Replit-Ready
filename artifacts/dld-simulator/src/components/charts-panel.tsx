@@ -1,6 +1,27 @@
 import { useMemo } from "react";
 import type { SweepResponse, DcCurveResponse, FlowAnalysisResponse, ThroughputResponse } from "@workspace/api-client-react/src/generated/api.schemas";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, ReferenceArea } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, ReferenceArea, ScatterChart, Scatter, ZAxis } from "recharts";
+
+// ─────────────────────────────────────────────
+// Published DLD experimental reference data
+// Sources: Huang 2004 (Science), Davis 2006 (PNAS), Inglis 2006 (Lab Chip),
+//          McGrath 2014 (Sci Rep), Loutherback 2010 (Microfluid Nanofluid),
+//          Beech 2012 (Lab Chip)
+// ─────────────────────────────────────────────
+function dcFormula(G: number, N: number) {
+  return 1.4 * G * Math.pow(N, -0.48);
+}
+
+const LITERATURE = [
+  { author: "Huang et al. 2004", G: 14, N: 10, Dc_exp: 6.8 },
+  { author: "Huang et al. 2004", G: 14, N: 20, Dc_exp: 4.3 },
+  { author: "Davis et al. 2006", G: 20, N: 8,  Dc_exp: 10.1 },
+  { author: "Davis et al. 2006", G: 15, N: 6,  Dc_exp: 8.6 },
+  { author: "Inglis et al. 2006", G: 16, N: 10, Dc_exp: 7.5 },
+  { author: "McGrath et al. 2014", G: 10, N: 8, Dc_exp: 5.1 },
+  { author: "Loutherback 2010", G: 18, N: 7, Dc_exp: 9.8 },
+  { author: "Beech et al. 2012", G: 12, N: 6, Dc_exp: 6.8 },
+];
 
 interface ChartsPanelProps {
   sweepData: SweepResponse | null;
@@ -12,6 +33,7 @@ interface ChartsPanelProps {
   refLabel?: string | null;
   currentG?: number;
   currentN?: number;
+  currentDc?: number;
 }
 
 function DiffStat({
@@ -158,7 +180,7 @@ function ComparisonDiffCard({
   );
 }
 
-export function ChartsPanel({ sweepData, dcCurveData, flowData, throughputData, refDcData, refFlowData, refLabel, currentG, currentN }: ChartsPanelProps) {
+export function ChartsPanel({ sweepData, dcCurveData, flowData, throughputData, refDcData, refFlowData, refLabel, currentG, currentN, currentDc }: ChartsPanelProps) {
   if (!sweepData && !dcCurveData && !flowData && !throughputData) return null;
 
   return (
@@ -272,6 +294,9 @@ export function ChartsPanel({ sweepData, dcCurveData, flowData, throughputData, 
         </div>
       )}
 
+      {/* Literature Benchmark */}
+      <BenchmarkPanel currentG={currentG} currentN={currentN} currentDc={currentDc} />
+
       {/* Flow Rate Analysis */}
       {flowData && (
         <div className="bg-card border border-border/50 rounded-lg p-4 flex flex-col min-h-[350px] lg:col-span-2">
@@ -294,6 +319,209 @@ export function ChartsPanel({ sweepData, dcCurveData, flowData, throughputData, 
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// Benchmark Panel — model vs. literature
+// ─────────────────────────────────────────────
+function BenchmarkPanel({
+  currentG,
+  currentN,
+  currentDc,
+}: {
+  currentG?: number;
+  currentN?: number;
+  currentDc?: number;
+}) {
+  const litPoints = useMemo(
+    () =>
+      LITERATURE.map((d) => ({
+        label: d.author,
+        Dc_formula: +dcFormula(d.G, d.N).toFixed(3),
+        Dc_exp: d.Dc_exp,
+        G: d.G,
+        N: d.N,
+      })),
+    []
+  );
+
+  // Identity line data: span the range of all points
+  const allX = litPoints.map((p) => p.Dc_formula);
+  const xMin = Math.max(0, Math.min(...allX) - 1);
+  const xMax = Math.max(...allX) + 1;
+  const identityLine = [
+    { x: xMin, y: xMin },
+    { x: xMax, y: xMax },
+  ];
+
+  // Current user simulation point (formula prediction only)
+  const userPoint =
+    currentG !== undefined && currentN !== undefined
+      ? [{ Dc_formula: +dcFormula(currentG, currentN).toFixed(3), Dc_exp: null as null }]
+      : [];
+
+  // RMSE of formula vs literature
+  const rmse = useMemo(() => {
+    const errs = litPoints.map((p) => (p.Dc_formula - p.Dc_exp) ** 2);
+    return Math.sqrt(errs.reduce((a, b) => a + b, 0) / errs.length);
+  }, [litPoints]);
+
+  const customTooltip = ({ active, payload }: any) => {
+    if (!active || !payload?.length) return null;
+    const d = payload[0]?.payload;
+    if (!d) return null;
+    const err = d.Dc_exp != null ? Math.abs(d.Dc_formula - d.Dc_exp) : null;
+    return (
+      <div className="bg-card border border-border text-foreground rounded-lg p-2 text-[9px] font-mono space-y-0.5 shadow-xl max-w-[200px]">
+        {d.label ? (
+          <div className="font-bold text-[#EF9F27] text-[10px]">{d.label}</div>
+        ) : (
+          <div className="font-bold text-primary text-[10px]">Your simulation</div>
+        )}
+        {d.G && <div className="text-muted-foreground">G={d.G}µm, N={d.N}</div>}
+        <div>Formula Dc: {d.Dc_formula} µm</div>
+        {d.Dc_exp != null && <div>Measured Dc: {d.Dc_exp} µm</div>}
+        {err != null && (
+          <div className={err < 1 ? "text-[#1D9E75]" : "text-[#EF9F27]"}>
+            Error: {err.toFixed(2)} µm ({((err / d.Dc_exp) * 100).toFixed(1)}%)
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="bg-card border border-border/50 rounded-lg p-4 flex flex-col min-h-[360px] lg:col-span-2">
+      <div className="mb-3 flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h3 className="text-sm font-mono font-bold uppercase tracking-widest">
+            Literature Benchmark
+          </h3>
+          <p className="text-[10px] font-mono text-muted-foreground">
+            Davis formula (Dc = 1.4·G·N⁻⁰·⁴⁸) vs. published experimental data
+          </p>
+        </div>
+        <div className="flex gap-2 flex-wrap shrink-0">
+          <div className="bg-muted/30 rounded px-2.5 py-1.5 text-right">
+            <div className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider">Model RMSE</div>
+            <div className="text-[11px] font-mono font-bold text-[#1D9E75]">{rmse.toFixed(2)} µm</div>
+          </div>
+          <div className="bg-muted/30 rounded px-2.5 py-1.5 text-right">
+            <div className="text-[9px] font-mono text-muted-foreground uppercase tracking-wider">Data points</div>
+            <div className="text-[11px] font-mono font-bold text-foreground/80">{litPoints.length} studies</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 w-full min-h-[260px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <ScatterChart margin={{ top: 10, right: 20, left: -10, bottom: 28 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis
+              dataKey="Dc_formula"
+              type="number"
+              name="Formula Dc"
+              domain={[xMin, xMax]}
+              fontSize={9}
+              fontFamily="monospace"
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v) => `${v}`}
+              label={{
+                value: "Formula prediction Dc (µm)",
+                position: "insideBottom",
+                offset: -16,
+                fontSize: 9,
+                fill: "hsl(var(--muted-foreground))",
+                fontFamily: "monospace",
+              }}
+            />
+            <YAxis
+              dataKey="Dc_exp"
+              type="number"
+              name="Measured Dc"
+              domain={[xMin, xMax]}
+              fontSize={9}
+              fontFamily="monospace"
+              tickLine={false}
+              axisLine={false}
+              label={{
+                value: "Experimental Dc (µm)",
+                angle: -90,
+                position: "insideLeft",
+                offset: 20,
+                fontSize: 9,
+                fill: "hsl(var(--muted-foreground))",
+                fontFamily: "monospace",
+              }}
+            />
+            <ZAxis range={[60, 60]} />
+            <Tooltip content={customTooltip} />
+
+            {/* Identity line y = x (perfect model) */}
+            <line
+              x1="0%"
+              y1="100%"
+              x2="100%"
+              y2="0%"
+              stroke="#1D9E75"
+              strokeWidth={1.5}
+              strokeDasharray="5 4"
+              opacity={0.4}
+            />
+
+            {/* Literature scatter */}
+            <Scatter
+              name="Literature"
+              data={litPoints}
+              fill="#EF9F27"
+              opacity={0.85}
+            />
+
+            {/* Current user simulation */}
+            {userPoint.length > 0 && (
+              <Scatter
+                name="Your simulation"
+                data={[
+                  {
+                    Dc_formula: userPoint[0].Dc_formula,
+                    Dc_exp: currentDc ?? userPoint[0].Dc_formula,
+                    label: null,
+                    G: currentG,
+                    N: currentN,
+                  },
+                ]}
+                fill="#E24B4A"
+                shape="star"
+              />
+            )}
+          </ScatterChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Literature table */}
+      <div className="mt-3 border-t border-border/30 pt-3">
+        <div className="grid grid-cols-5 gap-x-3 text-[8px] font-mono text-muted-foreground uppercase tracking-wider pb-1 border-b border-border/20">
+          <span className="col-span-2">Study</span>
+          <span className="text-right">G/N</span>
+          <span className="text-right">Formula</span>
+          <span className="text-right">Measured</span>
+        </div>
+        {litPoints.map((p) => {
+          const err = Math.abs(p.Dc_formula - p.Dc_exp);
+          const errColor = err < 0.5 ? "text-[#1D9E75]" : err < 1.5 ? "text-[#EF9F27]" : "text-[#E24B4A]";
+          return (
+            <div key={`${p.label}-${p.G}-${p.N}`} className="grid grid-cols-5 gap-x-3 py-0.5 text-[8px] font-mono border-b border-border/10">
+              <span className="col-span-2 text-muted-foreground truncate">{p.label}</span>
+              <span className="text-right text-foreground/60">{p.G}/{p.N}</span>
+              <span className="text-right text-foreground/80">{p.Dc_formula.toFixed(2)}</span>
+              <span className={`text-right font-bold ${errColor}`}>{p.Dc_exp.toFixed(1)}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

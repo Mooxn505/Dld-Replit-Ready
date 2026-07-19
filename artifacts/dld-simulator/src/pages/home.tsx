@@ -293,6 +293,7 @@ export default function Home() {
               refLabel={refLabel}
               currentG={G}
               currentN={N}
+              currentDc={analyzeData?.result?.Dc}
             />
           </motion.div>
         </div>

@@ -13,6 +13,8 @@ import { DataExportPanel } from "./data-export-panel";
 import { OptimizePanel } from "./optimize-panel";
 import { CascadePanel } from "./cascade-panel";
 import { PurityPanel } from "./purity-panel";
+import { DistributionPanel } from "./distribution-panel";
+import { TolerancePanel } from "./tolerance-panel";
 import { ReportHistoryPanel, type ReportHistoryEntry } from "./report-history-panel";
 
 interface ControlPanelProps {
@@ -271,6 +273,23 @@ export function ControlPanel({
           </div>
         </section>
       </div>
+
+      <DistributionPanel
+        d1={d1}
+        d2={d2}
+        label1={label1}
+        label2={label2}
+        Dc={analyzeData?.result?.Dc ?? null}
+      />
+
+      <TolerancePanel
+        G={G}
+        N={N}
+        d1={d1}
+        d2={d2}
+        label1={label1}
+        label2={label2}
+      />
 
       <MoldExportPanel
         currentG={G}

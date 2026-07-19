@@ -11,10 +11,24 @@
  */
 
 export const CELL_LIBRARY = [
-  { name: "Red blood cell", diameter: 8.0 },
-  { name: "White blood cell", diameter: 12.0 },
-  { name: "Circulating tumor cell", diameter: 16.0 },
+  // Blood cells (smallest → largest)
   { name: "Platelet", diameter: 2.5 },
+  { name: "Red blood cell (RBC)", diameter: 7.5 },
+  { name: "Lymphocyte", diameter: 8.5 },
+  { name: "Neutrophil", diameter: 12.0 },
+  { name: "Monocyte", diameter: 15.0 },
+  // Stem & progenitor cells
+  { name: "Hematopoietic stem cell", diameter: 10.0 },
+  // Circulating tumor cells (CTCs)
+  { name: "Circulating tumor cell (CTC)", diameter: 18.0 },
+  { name: "MCF-7 (breast cancer)", diameter: 20.0 },
+  { name: "A549 (lung cancer)", diameter: 18.0 },
+  { name: "HeLa cell", diameter: 16.0 },
+  { name: "PC-3 (prostate cancer)", diameter: 14.0 },
+  // Microbes
+  { name: "Bacteria (E. coli)", diameter: 2.0 },
+  { name: "Yeast cell", diameter: 4.0 },
+  // Custom
   { name: "Custom A", diameter: 6.0 },
   { name: "Custom B", diameter: 14.0 },
 ];
