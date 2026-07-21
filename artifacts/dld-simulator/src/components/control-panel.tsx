@@ -15,6 +15,9 @@ import { CascadePanel } from "./cascade-panel";
 import { PurityPanel } from "./purity-panel";
 import { DistributionPanel } from "./distribution-panel";
 import { TolerancePanel } from "./tolerance-panel";
+import { DiseasePresetsPanel, type DiseasePreset } from "./disease-presets-panel";
+import { ClinicalComparisonPanel } from "./clinical-comparison-panel";
+import { ThreeParticlePanel } from "./three-particle-panel";
 import { ReportHistoryPanel, type ReportHistoryEntry } from "./report-history-panel";
 
 interface ControlPanelProps {
@@ -59,6 +62,8 @@ interface ControlPanelProps {
   onRemoveReportHistoryEntry?: (id: string) => void;
   onLoadReportConfig?: (payload: { G: number; N: number; d1: number; d2: number; label1: string; label2: string }) => void;
   onUpdateReportNote?: (id: string, note: string) => void;
+  onLoadDiseasePreset?: (preset: DiseasePreset) => void;
+  onApplyStage1?: (G: number, N: number) => void;
 }
 
 export function ControlPanel({
