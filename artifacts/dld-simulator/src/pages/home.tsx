@@ -14,6 +14,7 @@ import { TrajectoryVisualizer } from "@/components/trajectory-visualizer";
 import { ChartsPanel } from "@/components/charts-panel";
 import { buildPdf } from "@/components/data-export-panel";
 import type { ReportHistoryEntry } from "@/components/report-history-panel";
+import type { DiseasePreset } from "@/components/disease-presets-panel";
 import { motion } from "framer-motion";
 import {
   type AnalyzeResponse,
@@ -252,6 +253,20 @@ export default function Home() {
           setD2(newD2);
           setLabel1(newLabel1);
           setLabel2(newLabel2);
+        }}
+        onLoadDiseasePreset={(preset: DiseasePreset) => {
+          setG(preset.G);
+          setN(preset.N);
+          setD1(preset.d1);
+          setD2(preset.d2);
+          setLabel1(preset.label1);
+          setLabel2(preset.label2);
+          runAnalysis(preset.d1, preset.d2, preset.G, preset.N, preset.label1, preset.label2);
+        }}
+        onApplyStage1={(stageG, stageN) => {
+          setG(stageG);
+          setN(stageN);
+          runAnalysis(d1, d2, stageG, stageN, label1, label2);
         }}
       />
       

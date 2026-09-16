@@ -304,6 +304,13 @@ export function buildPdf(props: DataExportPanelProps): jsPDF {
     note("(Run Purity Simulator to populate this section)");
   }
 
+  sectionTitle("Model Assumptions & Limitations");
+  note("Davis (2006) critical diameter model: Dc = 1.4 · G · N^-0.48.");
+  note("Particle behavior is approximated primarily by equivalent diameter.");
+  note("A ±15% G/N envelope is an engineering sensitivity range, not a confidence interval.");
+  note("Deformability, aggregation, viscosity, clogging, wall effects, and outlet recovery require laboratory validation.");
+  note("This educational simulation is not a clinical diagnostic or fabrication-ready specification.");
+
   ensureSpace(30);
   y += 10;
   doc.setFont("courier", "italic");

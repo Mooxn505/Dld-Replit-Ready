@@ -18,6 +18,7 @@ import { TolerancePanel } from "./tolerance-panel";
 import { DiseasePresetsPanel, type DiseasePreset } from "./disease-presets-panel";
 import { ClinicalComparisonPanel } from "./clinical-comparison-panel";
 import { ThreeParticlePanel } from "./three-particle-panel";
+import { ScienceIntegrityPanel } from "./science-integrity-panel";
 import { ReportHistoryPanel, type ReportHistoryEntry } from "./report-history-panel";
 
 interface ControlPanelProps {
@@ -107,7 +108,9 @@ export function ControlPanel({
   onClearReportHistory,
   onRemoveReportHistoryEntry,
   onLoadReportConfig,
-  onUpdateReportNote
+   onUpdateReportNote,
+   onLoadDiseasePreset,
+   onApplyStage1
 }: ControlPanelProps) {
   
   const handleCellSelect = (cellName: string, isParticle1: boolean) => {
@@ -278,6 +281,35 @@ export function ControlPanel({
           </div>
         </section>
       </div>
+
+      <DiseasePresetsPanel
+        onLoadPreset={(preset) => onLoadDiseasePreset?.(preset)}
+      />
+
+      <ThreeParticlePanel
+        d1={d1}
+        d2={d2}
+        label1={label1}
+        label2={label2}
+        onApplyStage1={onApplyStage1}
+      />
+
+      <ClinicalComparisonPanel
+        purityData={purityData}
+        efficiency={analyzeData?.result?.efficiency ?? null}
+        label1={label1}
+        label2={label2}
+      />
+
+      <ScienceIntegrityPanel
+        d1={d1}
+        d2={d2}
+        G={G}
+        N={N}
+        currentDc={analyzeData?.result?.Dc}
+        flowData={flowData}
+        hasPurityData={Boolean(purityData)}
+      />
 
       <DistributionPanel
         d1={d1}
