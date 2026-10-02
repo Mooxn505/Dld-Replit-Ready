@@ -1,33 +1,17 @@
 {
-  "version": 2,
-  "builds": [
+  "cleanUrls": true,
+  "rewrites": [
     {
-      "src": "artifacts/dld-simulator/package.json",
-      "use": "@vercel/static-build"
+      "source": "/api/:path*",
+      "destination": "/artifacts/api-server/:path*"
     },
     {
-      "src": "artifacts/api-server/index.ts",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "artifacts/api-server/index.ts"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "artifacts/dld-simulator/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "artifacts/dld-simulator/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
+
 
  
 
