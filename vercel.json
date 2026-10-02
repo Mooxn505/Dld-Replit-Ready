@@ -16,9 +16,11 @@
       "dest": "artifacts/api-server/index.ts"
     },
     {
-      "src": "/(.*)",
-      "dest": "artifacts/dld-simulator/$1",
       "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "artifacts/dld-simulator/$1"
     },
     {
       "src": "/(.*)",
@@ -26,5 +28,7 @@
     }
   ]
 }
+
+ 
 
 
