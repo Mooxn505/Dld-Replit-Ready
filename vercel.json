@@ -1,13 +1,17 @@
 {
+  "version": 2,
   "cleanUrls": true,
+  "builds": [
+    {
+      "src": "artifacts/api-server/index.ts",
+      "use": "@vercel/node"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "/artifacts/api-server/:path*"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/artifacts/api-server/index.ts"
     }
   ]
 }
+
