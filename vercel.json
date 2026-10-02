@@ -1,34 +1,30 @@
 {
-  "$schema": "https://vercel.sh",
-  "services": {
-    "api-server": {
-      "root": "artifacts/api-server",
-      "framework": "express"
+  "version": 2,
+  "builds": [
+    {
+      "src": "artifacts/dld-simulator/package.json",
+      "use": "@vercel/static-build"
     },
-    "dld-simulator": {
-      "root": "artifacts/dld-simulator",
-      "framework": "vite"
-    },
-    "mockup-sandbox": {
-      "root": "artifacts/mockup-sandbox",
-      "framework": "vite"
+    {
+      "src": "artifacts/api-server/index.ts",
+      "use": "@vercel/node"
     }
-  },
-  "rewrites": [
+  ],
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": { "service": "api-server" }
+      "src": "/api/(.*)",
+      "dest": "artifacts/api-server/index.ts"
     },
     {
-      "source": "/sandbox/(.*)",
-      "destination": { "service": "mockup-sandbox" }
+      "src": "/(.*)",
+      "dest": "artifacts/dld-simulator/$1",
+      "handle": "filesystem"
     },
     {
-      "source": "/(.*)",
-      "destination": { "service": "dld-simulator" }
+      "src": "/(.*)",
+      "dest": "artifacts/dld-simulator/index.html"
     }
   ]
 }
-
 
 
