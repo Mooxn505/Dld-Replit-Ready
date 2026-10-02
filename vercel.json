@@ -7,11 +7,13 @@
     },
     "dld-simulator": {
       "root": "artifacts/dld-simulator",
-      "framework": "vite"
+      "framework": "vite",
+      "buildCommand": "PORT=3000 pnpm run build"
     },
     "mockup-sandbox": {
       "root": "artifacts/mockup-sandbox",
-      "framework": "vite"
+      "framework": "vite",
+      "buildCommand": "PORT=3000 pnpm run build"
     }
   },
   "rewrites": [
@@ -29,3 +31,5 @@
     }
   ]
 }
+
+
