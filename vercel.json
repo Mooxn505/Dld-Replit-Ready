@@ -7,13 +7,11 @@
     },
     "dld-simulator": {
       "root": "artifacts/dld-simulator",
-      "framework": "vite",
-      "buildCommand": "vite build --config vite.config.ts || true"
+      "framework": "vite"
     },
     "mockup-sandbox": {
       "root": "artifacts/mockup-sandbox",
-      "framework": "vite",
-      "buildCommand": "vite build --config vite.config.ts || true"
+      "framework": "vite"
     }
   },
   "rewrites": [
