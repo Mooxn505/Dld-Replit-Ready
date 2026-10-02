@@ -1,1 +1,3 @@
-export { default } from '../artifacts/api-server/index';
+import app from '../artifacts/api-server/index';
+
+export default app;
