@@ -1,9 +1,10 @@
 {
+  "version": 2,
   "cleanUrls": true,
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "/api/server"
+      "destination": "/artifacts/api-server/index.ts"
     },
     {
       "source": "/(.*)",
@@ -11,5 +12,4 @@
     }
   ]
 }
-
 
